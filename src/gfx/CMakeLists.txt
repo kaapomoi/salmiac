@@ -1,6 +1,9 @@
-add_library(gfx STATIC src/camera.cpp)
+add_library(gfx STATIC
+        src/shader_loader.cpp
+        src/camera.cpp
+        )
 
 find_package(glm CONFIG REQUIRED)
-target_link_libraries(gfx PUBLIC glm::glm)
+target_link_libraries(gfx PRIVATE glfw GLEW::GLEW util)
 
-target_include_directories(gfx PUBLIC include ${GLEW_INCLUDE_DIRS})
+target_include_directories(gfx PUBLIC include)
