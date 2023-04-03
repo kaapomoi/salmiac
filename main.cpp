@@ -5,6 +5,7 @@
 
 #include "file_reader.h"
 #include "log.h"
+#include "model_loader.h"
 #include "shader_loader.h"
 
 #include <GL/glew.h>
@@ -94,6 +95,13 @@ int main()
     auto f_str = sal::File_reader::read_file("../res/shaders/core.fs");
 
     auto shader = sal::Shader_loader::from_sources(v_str, f_str, {});
+
+    std::uint64_t const base_flags = aiProcess_Triangulate | aiProcess_GenNormals
+                                     | aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph;
+    std::string const model_file{"../res/models/avocado/Avocado.gltf"};
+
+    auto avocado = sal::Model_loader::from_file(model_file, base_flags | aiProcess_FlipUVs
+                                                                | aiProcess_GlobalScale);
 
     sal::Log::info("{}", shader.program_id);
 
