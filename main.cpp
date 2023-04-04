@@ -2,8 +2,9 @@
  * Copyright (c) https://github.com/kaapomoi 2023.
  */
 
-
+#include "camera.h"
 #include "file_reader.h"
+#include "input_manager.h"
 #include "log.h"
 #include "model_loader.h"
 #include "shader_loader.h"
@@ -15,19 +16,13 @@
 
 namespace {
 
-struct window_deleter {
-    void operator()(GLFWwindow* w) { glfwDestroyWindow(w); }
-};
-
-typedef std::unique_ptr<GLFWwindow, window_deleter> Window_ptr;
-
-Window_ptr create_window(GLsizei const w, GLsizei const h) noexcept
+sal::Window_ptr create_window(GLsizei const w, GLsizei const h) noexcept
 {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    auto window = Window_ptr(glfwCreateWindow(w, h, "salmiac sandbox", nullptr, nullptr));
+    auto window = sal::Window_ptr(glfwCreateWindow(w, h, "salmiac sandbox", nullptr, nullptr));
 
     if (window == nullptr) {
         glfwTerminate();
@@ -43,15 +38,53 @@ void framebuffer_size_callback(GLFWwindow*, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-/// Don't pass ownership of window, only get a non-mutable ref.
-void process_input(Window_ptr const& window)
+void handle_input(sal::Input_manager& input_manager,
+                  sal::Window_ptr const& window,
+                  sal::Camera& camera,
+                  double& last_x,
+                  double& last_y)
 {
-    if (glfwGetKey(window.get(), GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    double x{};
+    double y{};
+    glfwGetCursorPos(window.get(), &x, &y);
+
+    static constexpr float sensitivity{0.001f};
+
+    double const x_offset{(x - last_x) * sensitivity};
+    double const y_offset{(y - last_y) * sensitivity};
+
+    last_x = x;
+    last_y = y;
+
+    if (input_manager.button(GLFW_MOUSE_BUTTON_RIGHT)) {
+        camera.look_around(static_cast<float>(x_offset), static_cast<float>(-y_offset), true);
+        glfwSetInputMode(window.get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+    else {
+        glfwSetInputMode(window.get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
+    static constexpr float camera_movement_speed{0.001f};
+
+    if (input_manager.key(GLFW_KEY_W)) {
+        camera.move(sal::Camera::FORWARD, camera_movement_speed);
+    }
+    if (input_manager.key(GLFW_KEY_S)) {
+        camera.move(sal::Camera::BACKWARD, camera_movement_speed);
+    }
+    if (input_manager.key(GLFW_KEY_A)) {
+        camera.move(sal::Camera::LEFT, camera_movement_speed);
+    }
+    if (input_manager.key(GLFW_KEY_D)) {
+        camera.move(sal::Camera::RIGHT, camera_movement_speed);
+    }
+
+    if (input_manager.key(GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose(window.get(), true);
     }
 }
 
-bool init_glew(Window_ptr const& window)
+bool init_glew(sal::Window_ptr const& window)
 {
     glewExperimental = true; // Needed for core profile
     glfwMakeContextCurrent(window.get());
@@ -60,6 +93,7 @@ bool init_glew(Window_ptr const& window)
         return false;
     }
 
+    fprintf(stdout, "OpenGL version: %s\n", glGetString(GL_VERSION));
     sal::Log::info("GLEW initialized!");
     return true;
 }
@@ -68,8 +102,18 @@ bool init_glew(Window_ptr const& window)
 
 int main()
 {
-    static GLsizei constexpr WINDOW_WIDTH{640};
-    static GLsizei constexpr WINDOW_HEIGHT{480};
+    static GLsizei constexpr WINDOW_WIDTH{1280};
+    static GLsizei constexpr WINDOW_HEIGHT{720};
+
+    sal::Camera camera{{0.f, 0.f, 3.f}};
+    sal::Input_manager input_manager;
+    input_manager.register_keys(
+        {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_LEFT_SHIFT, GLFW_KEY_ESCAPE},
+        {GLFW_MOUSE_BUTTON_RIGHT});
+
+    double mouse_x{0};
+    double mouse_y{0};
+
     sal::Log::init("sal_log.txt");
 
     if (!glfwInit()) {
@@ -91,93 +135,101 @@ int main()
 
     glfwSetFramebufferSizeCallback(window.get(), framebuffer_size_callback);
 
-    auto v_str = sal::File_reader::read_file("../res/shaders/core.vs");
-    auto f_str = sal::File_reader::read_file("../res/shaders/core.fs");
+    auto v_str = sal::File_reader::read_file("../res/shaders/basic_lighting.vsh");
+    auto f_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
 
-    auto shader = sal::Shader_loader::from_sources(v_str, f_str, {});
+    auto shader = sal::Shader_loader::from_sources(v_str, f_str, {"in_uv", "in_normal", "in_pos"});
 
-    std::uint64_t const base_flags = aiProcess_Triangulate | aiProcess_GenNormals
-                                     | aiProcess_OptimizeMeshes | aiProcess_OptimizeGraph;
+    std::uint64_t const base_flags =
+        aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_OptimizeGraph | aiProcess_FlipUVs;
     std::string const model_file{"../res/models/avocado/Avocado.gltf"};
 
-    auto avocado = sal::Model_loader::from_file(model_file, base_flags | aiProcess_FlipUVs
-                                                                | aiProcess_GlobalScale);
+    auto avocado = sal::Model_loader::from_file(model_file, base_flags);
 
     sal::Log::info("{}", shader.program_id);
 
-    // set up vertex data (and buffer(s)) and configure vertex attributes
-    // ------------------------------------------------------------------
-    float vertices[] = {
-        0.5f,  0.5f,  0.0f, // top right
-        0.5f,  -0.5f, 0.0f, // bottom right
-        -0.5f, -0.5f, 0.0f, // bottom left
-        -0.5f, 0.5f,  0.0f  // top left
-    };
-    unsigned int indices[] = {
-        // note that we start from 0!
-        0, 1, 3, // first Triangle
-        1, 2, 3  // second Triangle
-    };
-    unsigned int VBO, VAO, EBO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(VAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-    // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-    // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-    // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-    glBindVertexArray(0);
-
-
-    // uncomment this call to draw in wireframe polygons.
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     auto t_start = std::chrono::high_resolution_clock::now();
 
     while (!glfwWindowShouldClose(window.get())) {
-        process_input(window);
+        input_manager.tick(window);
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        handle_input(input_manager, window, camera, mouse_x, mouse_y);
 
-        // draw our first triangle
-        glUseProgram(shader.program_id);
-        // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-        glBindVertexArray(VAO);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
+        glClearColor(0.4f, 0.3f, 0.7f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         auto t_now = std::chrono::high_resolution_clock::now();
         float time =
             std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
 
-        shader.set_uniform("color", glm::vec3{(sin(time * 4.0f) + 1.0f) / 2.0f,
-                                              (cos(time * 4.0f) + 1.0f) / 2.0f,
-                                              (tan(time * 4.0f) + 1.0f) / 2.0f});
+        glm::mat4 const projection = glm::perspective(
+            glm::radians(1.f), static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT),
+            0.1f, 1000.0f);
+
+        glm::mat4 const view = camera.get_view_matrix();
+
+        shader.use();
+
+        shader.set_uniform("camera_pos", camera.position());
+
+        shader.set_uniform("projection", projection);
+        shader.set_uniform("view", view);
+
+        shader.set_uniform<float>("material.shininess", 64.0f);
+
+        glm::mat4 model = glm::mat4{1.0f};
+
+        model = glm::scale(model, glm::vec3{1.0f, 1.0f, 1.0f});
+
+        glm::vec3 model_rotation{0.0f};
+        glm::vec3 model_position{0.0f};
+
+        model = glm::rotate(model, glm::radians(model_rotation.x * 360.0f), {1.0f, 0.0f, 0.0f});
+        model = glm::rotate(model, glm::radians(model_rotation.y * 360.0f), {0.0f, 1.0f, 0.0f});
+        model = glm::rotate(model, glm::radians(model_rotation.z * 360.0f), {0.0f, 0.0f, 1.0f});
+        model = glm::translate(model, model_position);
+
+        shader.set_uniform("model", model);
+
+        auto const err = glGetError();
+        assert(err == GL_NO_ERROR);
+
+        for (auto const& mesh : avocado.meshes) {
+            for (std::int32_t i{0}; i < mesh.textures.size(); i++) {
+                glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
+                // retrieve texture number (the N in diffuse_textureN)
+                const auto texture_type = mesh.textures.at(i).type;
+                //if (texture_type == "diffuse") {
+                //    number = std::to_string(diffuse_nr++);
+                //} else if (texture_type == "specular") {
+                //    number = std::to_string(specular_nr++);
+                //}
+                std::string const uniform_identifier{"material." + sal::Texture::str(texture_type)};
+
+                // now set the sampler to the correct texture unit
+                //shader.set_int(texture_type + number, i);
+                shader.set_uniform<std::int32_t>(uniform_identifier, i);
+                glBindTexture(GL_TEXTURE_2D, mesh.textures.at(i).id);
+            }
+
+            // draw mesh
+            glBindVertexArray(mesh.vao);
+            glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
+            glBindVertexArray(0);
+
+
+            glActiveTexture(GL_TEXTURE0);
+        }
+
+        shader.un_use();
 
         glfwSwapBuffers(window.get());
         glfwPollEvents();
     }
 
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &EBO);
     glDeleteProgram(shader.program_id);
 
     glfwTerminate();

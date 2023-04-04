@@ -145,6 +145,7 @@ Texture::Type Model_loader::ai_texture_type_to_sal_texture_type(aiTextureType co
         return Texture::Type::specular;
     }
     else {
+        // TODO: Add more texture types
         return Texture::Type::unknown_texture_type;
     }
 }

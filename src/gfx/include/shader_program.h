@@ -41,7 +41,8 @@ struct Shader_program {
     void set_uniform(std::string const& name, T const& value)
     {
         if constexpr (std::is_same_v<T, std::int32_t>) {
-            glUniform1i(glGetUniformLocation(program_id, name.c_str()), value);
+            auto res = glGetUniformLocation(program_id, name.c_str());
+            glUniform1i(res, value);
         }
         else if constexpr (std::is_same_v<T, float>) {
             glUniform1f(glGetUniformLocation(program_id, name.c_str()), value);
@@ -50,8 +51,8 @@ struct Shader_program {
             glUniform3fv(glGetUniformLocation(program_id, name.c_str()), 1, glm::value_ptr(value));
         }
         else if constexpr (std::is_same_v<T, glm::mat4>) {
-            glUniformMatrix4fv(glGetUniformLocation(program_id, name.c_str()), 1, GL_FALSE,
-                               glm::value_ptr(value));
+            auto res = glGetUniformLocation(program_id, name.c_str());
+            glUniformMatrix4fv(res, 1, GL_FALSE, glm::value_ptr(value));
         }
         else {
             Log::error("Invalid type in set_uniform.");
