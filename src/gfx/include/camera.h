@@ -72,9 +72,8 @@ private:
 
     // camera options
     float m_zoom;
+
     static constexpr float ZOOM{45.0f};
-
-
     static constexpr float YAW{-90.0f};
     static constexpr float PITCH{0.0f};
 };

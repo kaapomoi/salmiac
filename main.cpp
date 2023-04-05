@@ -48,7 +48,7 @@ void handle_input(sal::Input_manager& input_manager,
     double y{};
     glfwGetCursorPos(window.get(), &x, &y);
 
-    static constexpr float sensitivity{0.001f};
+    static constexpr float sensitivity{0.1f};
 
     double const x_offset{(x - last_x) * sensitivity};
     double const y_offset{(y - last_y) * sensitivity};
@@ -64,7 +64,7 @@ void handle_input(sal::Input_manager& input_manager,
         glfwSetInputMode(window.get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
-    static constexpr float camera_movement_speed{0.001f};
+    static constexpr float camera_movement_speed{0.1f};
 
     if (input_manager.key(GLFW_KEY_W)) {
         camera.move(sal::Camera::FORWARD, camera_movement_speed);
@@ -151,11 +151,12 @@ int main()
 
     auto shader = sal::Shader_loader::from_sources(v_str, f_str, {"in_uv", "in_normal", "in_pos"});
 
-    std::uint64_t const base_flags =
-        aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_OptimizeGraph | aiProcess_FlipUVs;
+    std::uint64_t const base_flags = aiProcess_Triangulate | aiProcess_GenNormals
+                                     | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
     std::string const model_file{"../res/models/avocado/Avocado.gltf"};
 
-    auto avocado = sal::Model_loader::from_file(model_file, base_flags);
+    auto avocado = sal::Model_loader::from_file(model_file, base_flags | aiProcess_GlobalScale
+                                                                | aiProcess_FlipUVs);
 
     sal::Log::info("{}", shader.program_id);
 
@@ -177,44 +178,41 @@ int main()
 
         handle_input(input_manager, window, camera, mouse_x, mouse_y);
 
-        glClearColor(0.4f, 0.3f, 0.7f, 1.0f);
+        glClearColor(0.4f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glEnable(GL_DEPTH_TEST);
 
         auto t_now = std::chrono::high_resolution_clock::now();
         float time =
             std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
 
         glm::mat4 const projection = glm::perspective(
-            glm::radians(1.f), static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT),
-            0.1f, 1000.0f);
+            glm::radians(camera.zoom()),
+            static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT), 0.1f, 1000.0f);
 
         glm::mat4 const view = camera.get_view_matrix();
 
-        shader.use();
-
-        shader.set_uniform("camera_pos", camera.position());
-
-        shader.set_uniform("projection", projection);
-        shader.set_uniform("view", view);
-
-        shader.set_uniform<float>("material.shininess", 64.0f);
-
-        glm::mat4 model = glm::mat4{1.0f};
-
-        model = glm::scale(model, glm::vec3{1.0f, 1.0f, 1.0f});
-
         glm::vec3 model_rotation{0.0f};
         glm::vec3 model_position{0.0f};
+
+        shader.use();
+
+        glm::mat4 model{1.0f};
+
+        model = glm::scale(model, 10.0f * glm::vec3{1.0f, 1.0f, 1.0f});
+
 
         model = glm::rotate(model, glm::radians(model_rotation.x * 360.0f), {1.0f, 0.0f, 0.0f});
         model = glm::rotate(model, glm::radians(model_rotation.y * 360.0f), {0.0f, 1.0f, 0.0f});
         model = glm::rotate(model, glm::radians(model_rotation.z * 360.0f), {0.0f, 0.0f, 1.0f});
         model = glm::translate(model, model_position);
 
+        shader.set_uniform<float>("material.shininess", 64.0f);
+        shader.set_uniform("camera_pos", camera.position());
+        shader.set_uniform("projection", projection);
+        shader.set_uniform("view", view);
         shader.set_uniform("model", model);
-
-        auto const err = glGetError();
-        assert(err == GL_NO_ERROR);
 
         for (auto const& mesh : avocado.meshes) {
             for (std::int32_t i{0}; i < mesh.textures.size(); i++) {
@@ -242,6 +240,9 @@ int main()
 
             glActiveTexture(GL_TEXTURE0);
         }
+
+        auto const err = glGetError();
+        assert(err == GL_NO_ERROR);
 
         shader.un_use();
 
