@@ -98,6 +98,17 @@ bool init_glew(sal::Window_ptr const& window)
     return true;
 }
 
+bool key_callback(sal::Window_ptr const& window, std::int32_t const key) noexcept
+{
+    return static_cast<bool>(glfwGetKey(window.get(), key));
+}
+
+bool mouse_click_callback(sal::Window_ptr const& window, std::int32_t const button) noexcept
+{
+    return static_cast<bool>(glfwGetMouseButton(window.get(), button));
+}
+
+
 } // namespace
 
 int main()
@@ -153,8 +164,16 @@ int main()
 
     auto t_start = std::chrono::high_resolution_clock::now();
 
+    std::function<bool(std::int32_t)> k_cb = [&window](std::int32_t const key) {
+        return key_callback(window, key);
+    };
+
+    std::function<bool(std::int32_t)> m_cb = [&window](std::int32_t const button) {
+        return mouse_click_callback(window, button);
+    };
+
     while (!glfwWindowShouldClose(window.get())) {
-        input_manager.tick(window);
+        input_manager.update(k_cb, m_cb);
 
         handle_input(input_manager, window, camera, mouse_x, mouse_y);
 
