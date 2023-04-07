@@ -61,6 +61,12 @@ struct Shader_program {
 
     friend class Shader_loader;
 
+    Shader_program() noexcept = default;
+    Shader_program(Shader_program& other) noexcept = delete;
+    Shader_program(Shader_program&& other) noexcept = default;
+    Shader_program& operator=(Shader_program& other) noexcept = delete;
+    Shader_program& operator=(Shader_program&& other) noexcept = default;
+
 private:
     GLuint vertex_shader_id{0};
     GLuint fragment_shader_id{0};
