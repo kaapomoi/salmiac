@@ -88,7 +88,7 @@ void Shader_loader::link_shaders(Shader_program& shader) noexcept
 
 void Shader_loader::check_error(bool const check_program_error, Shader_program& shader) noexcept
 {
-    GLint max_length{0};
+    GLint max_length{512};
     if (check_program_error) {
         glGetProgramiv(shader.program_id, GL_INFO_LOG_LENGTH, &max_length);
     }

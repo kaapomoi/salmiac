@@ -11,6 +11,7 @@
 #include "log.h"
 #include "model_loader.h"
 #include "shader_loader.h"
+#include "transform.h"
 
 #include "entt/entity/registry.hpp"
 
@@ -37,6 +38,7 @@ protected:
     void update() noexcept;
 
     virtual void run_user_tasks() noexcept = 0;
+    virtual void set_user_uniforms(Shader_program& shader) noexcept = 0;
 
     void register_keys(std::initializer_list<std::int32_t> keys,
                        std::initializer_list<std::int32_t> mouse_buttons) noexcept;
@@ -48,6 +50,7 @@ protected:
     Window_ptr m_window;
     Input_manager m_input_manager;
     bool m_suggest_close{false};
+    std::size_t m_frame_counter{0};
 
 private:
     static void framebuffer_size_callback(GLFWwindow*, int width, int height);
@@ -55,6 +58,8 @@ private:
     void run_engine_tasks() noexcept;
 
     bool init_glew() noexcept;
+
+    void render_models() noexcept;
 
     bool key_callback(std::int32_t const key) noexcept;
     bool mouse_click_callback(std::int32_t const button) noexcept;

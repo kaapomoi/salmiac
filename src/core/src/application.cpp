@@ -36,6 +36,7 @@ Application::Exit_code Application::setup(std::size_t const w_w, std::size_t con
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
+
 void Application::update() noexcept
 {
     /// Update inputs
@@ -45,9 +46,68 @@ void Application::update() noexcept
     run_user_tasks();
 
     /// Draw?
+    render_models();
 
 
     m_suggest_close = glfwWindowShouldClose(m_window.get());
+    m_frame_counter++;
+}
+
+void Application::render_models() noexcept
+{
+    auto render_view = m_registry.view<Transform, Model, Shader_program>();
+    for (auto [entity, transform, model, shader] : render_view.each()) {
+
+        glm::vec3 model_position{transform.position};
+        glm::vec3 model_rotation{transform.rotation};
+        glm::vec3 model_scale{transform.scale};
+
+        sal::Log::info("Rotation {}", model_rotation.y);
+        shader.use();
+
+        glm::mat4 model_mat{1.0f};
+
+        model_mat = glm::translate(model_mat, model_position);
+
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
+        model_mat = glm::scale(model_mat, model_scale);
+
+        set_user_uniforms(shader);
+
+        shader.set_uniform("model", model_mat);
+
+        for (auto const& mesh : model.meshes) {
+            for (std::size_t i{0}; i < mesh.textures.size(); i++) {
+                glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
+                // retrieve texture number (the N in diffuse_textureN)
+                const auto texture_type = mesh.textures.at(i).type;
+                std::string const uniform_identifier{"material." + sal::Texture::str(texture_type)};
+
+                // now set the sampler to the correct texture unit
+                shader.set_uniform<std::int32_t>(uniform_identifier, i);
+                glBindTexture(GL_TEXTURE_2D, mesh.textures.at(i).id);
+            }
+
+            // draw mesh
+            glBindVertexArray(mesh.vao);
+            glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
+            glBindVertexArray(0);
+
+
+            glActiveTexture(GL_TEXTURE0);
+        }
+
+        auto const err = glGetError();
+        assert(err == GL_NO_ERROR);
+
+
+        shader.un_use();
+    }
+
+    glfwSwapBuffers(m_window.get());
+    glfwPollEvents();
 }
 
 void Application::run_engine_tasks() noexcept

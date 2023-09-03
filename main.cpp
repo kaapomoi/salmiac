@@ -7,15 +7,10 @@
 #include <chrono>
 #include <random>
 
-static GLsizei constexpr WINDOW_WIDTH{1280};
-static GLsizei constexpr WINDOW_HEIGHT{720};
+static GLsizei constexpr WINDOW_WIDTH{1920};
+static GLsizei constexpr WINDOW_HEIGHT{1080};
 
 namespace {
-struct Transform {
-    glm::vec3 position;
-    glm::vec3 rotation;
-    glm::vec3 scale;
-};
 
 struct Rotator {
     glm::vec3 amount;
@@ -44,7 +39,7 @@ public:
             sal::Shader_loader::from_sources(v_str, f_str, {"in_uv", "in_normal", "in_pos"}));
 
         auto v2_str = sal::File_reader::read_file("../res/shaders/basic_lighting.vsh");
-        auto f2_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
+        auto f2_str = sal::File_reader::read_file("../res/shaders/liquid_frag.glsl");
         m_shaders.push_back(
             sal::Shader_loader::from_sources(v2_str, f2_str, {"in_uv", "in_normal", "in_pos"}));
 
@@ -61,11 +56,9 @@ public:
         m_models.push_back(
             sal::Model_loader::from_file(avo_file, scale_factor2, base_flags | aiProcess_FlipUVs));
 
-        m_shader_model_pairs.push_back({m_shaders.front(), m_models.front()});
-        m_shader_model_pairs.push_back({m_shaders.back(), m_models.back()});
-
         entt::entity palace = m_registry.create();
-        m_registry.emplace<Transform>(palace, glm::vec3{0.0f}, glm::vec3{0.0f}, glm::vec3{1.0f});
+        m_registry.emplace<sal::Transform>(palace, glm::vec3{0.0f}, glm::vec3{0.0f},
+                                           glm::vec3{1.0f});
         m_registry.emplace<sal::Model>(palace, m_models.back());
         m_registry.emplace<sal::Shader_program>(palace, m_shaders.back());
         static std::mt19937 rand_engine;
@@ -74,11 +67,11 @@ public:
         for (std::size_t i{0}; i < 8; i++) {
             for (std::size_t j{0}; j < 8; j++) {
                 entt::entity kao = m_registry.create();
-                m_registry.emplace<Transform>(kao,
-                                              glm::vec3{dist(rand_engine) * 4,
-                                                        static_cast<float>(i) + 0.5f,
-                                                        static_cast<float>(j)},
-                                              glm::vec3{90.0f, 0.0f, 90.f}, glm::vec3{1.0f});
+                m_registry.emplace<sal::Transform>(kao,
+                                                   glm::vec3{dist(rand_engine) * 4,
+                                                             static_cast<float>(i) + 0.5f,
+                                                             static_cast<float>(j)},
+                                                   glm::vec3{90.0f, 0.0f, 90.f}, glm::vec3{1.0f});
                 m_registry.emplace<sal::Model>(kao, m_models.front());
                 m_registry.emplace<sal::Shader_program>(kao, m_shaders.at((i + j) % 2));
                 m_registry.emplace<Rotator>(
@@ -112,11 +105,6 @@ private:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glEnable(GL_DEPTH_TEST);
-        glm::mat4 const projection = glm::perspective(
-            glm::radians(m_camera.zoom()),
-            static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT), 0.1f, 1000.0f);
-
-        glm::mat4 const view = m_camera.get_view_matrix();
 
         auto t_now = std::chrono::high_resolution_clock::now();
         float delta_time =
@@ -124,67 +112,30 @@ private:
                 .count();
         m_t_prev_update = t_now;
 
-        auto reg_view = m_registry.view<Transform, sal::Model, sal::Shader_program>();
-
-        auto rotator_view = m_registry.view<Rotator, Transform>();
+        auto rotator_view = m_registry.view<Rotator, sal::Transform>();
         for (auto [entity, rotator, transform] : rotator_view.each()) {
             transform.rotation += rotator.amount * delta_time;
         }
+    }
 
-        for (auto [entity, transform, model, shader] : reg_view.each()) {
+    void set_user_uniforms(sal::Shader_program& shader) noexcept final
+    {
+        glm::mat4 const projection = glm::perspective(
+            glm::radians(m_camera.zoom()),
+            static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT), 0.1f, 1000.0f);
 
-            glm::vec3 model_position{transform.position};
-            glm::vec3 model_rotation{transform.rotation};
-            glm::vec3 model_scale{transform.scale};
+        glm::mat4 const view = m_camera.get_view_matrix();
 
-            sal::Log::info("Rotation {}", model_rotation.y);
-            shader.use();
-
-            glm::mat4 model_mat{1.0f};
-
-            model_mat = glm::translate(model_mat, model_position);
-
-            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
-            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
-            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
-            model_mat = glm::scale(model_mat, model_scale);
-
-            shader.set_uniform<float>("material.shininess", 64.0f);
-            shader.set_uniform("camera_pos", m_camera.position());
-            shader.set_uniform("projection", projection);
-            shader.set_uniform("view", view);
-            shader.set_uniform("model", model_mat);
-
-            for (auto const& mesh : model.meshes) {
-                for (std::size_t i{0}; i < mesh.textures.size(); i++) {
-                    glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
-                    // retrieve texture number (the N in diffuse_textureN)
-                    const auto texture_type = mesh.textures.at(i).type;
-                    std::string const uniform_identifier{"material."
-                                                         + sal::Texture::str(texture_type)};
-
-                    // now set the sampler to the correct texture unit
-                    shader.set_uniform<std::int32_t>(uniform_identifier, i);
-                    glBindTexture(GL_TEXTURE_2D, mesh.textures.at(i).id);
-                }
-
-                // draw mesh
-                glBindVertexArray(mesh.vao);
-                glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
-                glBindVertexArray(0);
-
-
-                glActiveTexture(GL_TEXTURE0);
-            }
-
-            auto const err = glGetError();
-            assert(err == GL_NO_ERROR);
-
-            shader.un_use();
+        shader.set_uniform<float>("material.shininess", 64.0f);
+        shader.set_uniform("camera_pos", m_camera.position());
+        shader.set_uniform("projection", projection);
+        shader.set_uniform("view", view);
+        /// TODO:
+        //if (shader.has_property("")) {
+        //}
+        if (shader.program_id == m_shaders.back().program_id) {
+            shader.set_uniform<std::int32_t>("frame", m_frame_counter);
         }
-
-        glfwSwapBuffers(m_window.get());
-        glfwPollEvents();
     }
 
     void handle_input()
@@ -237,8 +188,6 @@ private:
 
     std::vector<sal::Shader_program> m_shaders;
     std::vector<sal::Model> m_models;
-
-    std::vector<std::pair<sal::Shader_program&, sal::Model&>> m_shader_model_pairs;
 };
 
 
