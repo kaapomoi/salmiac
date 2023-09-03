@@ -66,8 +66,8 @@ struct Shader_program {
     Shader_program& operator=(Shader_program&& other) noexcept = default;
 
     /// Disallow copy constructing
-    Shader_program(Shader_program& other) noexcept = delete;
-    Shader_program& operator=(Shader_program& other) noexcept = delete;
+    Shader_program(Shader_program& other) noexcept = default;
+    Shader_program& operator=(Shader_program& other) noexcept = default;
 
 private:
     GLuint vertex_shader_id{0};

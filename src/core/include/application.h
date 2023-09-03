@@ -6,8 +6,13 @@
 #define SALMIAC_APPLICATION_H
 
 #include "camera.h"
+#include "file_reader.h"
 #include "input_manager.h"
 #include "log.h"
+#include "model_loader.h"
+#include "shader_loader.h"
+
+#include "entt/entity/registry.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -39,6 +44,7 @@ protected:
     Window_ptr create_window(GLsizei const w, GLsizei const h) noexcept;
 
 
+    entt::registry m_registry;
     Window_ptr m_window;
     Input_manager m_input_manager;
     bool m_suggest_close{false};

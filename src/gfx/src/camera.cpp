@@ -7,7 +7,7 @@
 namespace sal {
 
 Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch) noexcept
-    : m_front{glm::vec3{0.0f, 0.0f, -1.0f}}
+    : m_front{glm::vec3{1.0f, 0.0f, 0.0f}}
     , m_zoom{ZOOM}
     , m_world_position{position}
     , m_up{up}

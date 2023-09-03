@@ -3,27 +3,25 @@
  */
 
 #include "application.h"
-#include "camera.h"
-#include "file_reader.h"
-#include "input_manager.h"
-#include "log.h"
-#include "model_loader.h"
-#include "shader_loader.h"
-#include "shader_program.h"
 
 #include <chrono>
-#include <map>
-#include <thread>
-
-namespace {
-
-
-} // namespace
-
+#include <random>
 
 static GLsizei constexpr WINDOW_WIDTH{1280};
 static GLsizei constexpr WINDOW_HEIGHT{720};
 
+namespace {
+struct Transform {
+    glm::vec3 position;
+    glm::vec3 rotation;
+    glm::vec3 scale;
+};
+
+struct Rotator {
+    glm::vec3 amount;
+};
+
+}; // namespace
 
 class Market : public sal::Application {
 public:
@@ -40,7 +38,7 @@ public:
     sal::Application::Exit_code run() noexcept
     {
         auto v_str = sal::File_reader::read_file("../res/shaders/basic_lighting.vsh");
-        auto f_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
+        auto f_str = sal::File_reader::read_file("../res/shaders/bad_lighting_frag.glsl");
 
         m_shaders.push_back(
             sal::Shader_loader::from_sources(v_str, f_str, {"in_uv", "in_normal", "in_pos"}));
@@ -54,19 +52,42 @@ public:
                                          | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
 
         std::string const model_file{"../res/models/case/j-case.obj"};
-        float const scale_factor{1.0f};
+        float const scale_factor{0.5f};
         m_models.push_back(
             sal::Model_loader::from_file(model_file, scale_factor, base_flags | aiProcess_FlipUVs));
 
         std::string const avo_file{"../res/models/Sponza/Sponza.gltf"};
-        float const scale_factor2{0.01f};
+        float const scale_factor2{0.1f};
         m_models.push_back(
             sal::Model_loader::from_file(avo_file, scale_factor2, base_flags | aiProcess_FlipUVs));
 
         m_shader_model_pairs.push_back({m_shaders.front(), m_models.front()});
         m_shader_model_pairs.push_back({m_shaders.back(), m_models.back()});
 
+        entt::entity palace = m_registry.create();
+        m_registry.emplace<Transform>(palace, glm::vec3{0.0f}, glm::vec3{0.0f}, glm::vec3{1.0f});
+        m_registry.emplace<sal::Model>(palace, m_models.back());
+        m_registry.emplace<sal::Shader_program>(palace, m_shaders.back());
+        static std::mt19937 rand_engine;
+        auto dist{std::uniform_real_distribution<double>()};
+
+        for (std::size_t i{0}; i < 8; i++) {
+            for (std::size_t j{0}; j < 8; j++) {
+                entt::entity kao = m_registry.create();
+                m_registry.emplace<Transform>(kao,
+                                              glm::vec3{dist(rand_engine) * 4,
+                                                        static_cast<float>(i) + 0.5f,
+                                                        static_cast<float>(j)},
+                                              glm::vec3{90.0f, 0.0f, 90.f}, glm::vec3{1.0f});
+                m_registry.emplace<sal::Model>(kao, m_models.front());
+                m_registry.emplace<sal::Shader_program>(kao, m_shaders.at((i + j) % 2));
+                m_registry.emplace<Rotator>(
+                    kao, glm::vec3{0.f, dist(rand_engine) * 10.f, dist(rand_engine) * 10.f});
+            }
+        }
+
         m_t_start = std::chrono::high_resolution_clock::now();
+        m_t_prev_update = m_t_start;
 
         while (!m_suggest_close) {
             update();
@@ -87,7 +108,7 @@ private:
     void run_user_tasks() noexcept final
     {
         handle_input();
-        glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+        glClearColor(0.0f, 0.f, 0.f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glEnable(GL_DEPTH_TEST);
@@ -98,34 +119,35 @@ private:
         glm::mat4 const view = m_camera.get_view_matrix();
 
         auto t_now = std::chrono::high_resolution_clock::now();
-        float time =
-            std::chrono::duration_cast<std::chrono::duration<float>>(t_now - m_t_start).count();
+        float delta_time =
+            std::chrono::duration_cast<std::chrono::duration<float>>(t_now - m_t_prev_update)
+                .count();
+        m_t_prev_update = t_now;
 
+        auto reg_view = m_registry.view<Transform, sal::Model, sal::Shader_program>();
 
-        for (auto& shader_model_pair : m_shader_model_pairs) {
-            auto& shader = shader_model_pair.first;
-            auto& model = shader_model_pair.second;
+        auto rotator_view = m_registry.view<Rotator, Transform>();
+        for (auto [entity, rotator, transform] : rotator_view.each()) {
+            transform.rotation += rotator.amount * delta_time;
+        }
 
-            sal::Log::info("Shader id {}", shader.program_id);
-            sal::Log::info("Meshes size {}", model.meshes.size());
+        for (auto [entity, transform, model, shader] : reg_view.each()) {
 
-            glm::vec3 model_rotation{0.0f + time * 0.01f};
-            glm::vec3 model_position{0.0f};
+            glm::vec3 model_position{transform.position};
+            glm::vec3 model_rotation{transform.rotation};
+            glm::vec3 model_scale{transform.scale};
 
+            sal::Log::info("Rotation {}", model_rotation.y);
             shader.use();
 
             glm::mat4 model_mat{1.0f};
 
-            model_mat = glm::scale(model_mat, glm::vec3{1.0f, 1.0f, 1.0f});
-
-
-            model_mat =
-                glm::rotate(model_mat, glm::radians(model_rotation.x * 360.0f), {1.0f, 0.0f, 0.0f});
-            model_mat =
-                glm::rotate(model_mat, glm::radians(model_rotation.y * 360.0f), {0.0f, 1.0f, 0.0f});
-            model_mat =
-                glm::rotate(model_mat, glm::radians(model_rotation.z * 360.0f), {0.0f, 0.0f, 1.0f});
             model_mat = glm::translate(model_mat, model_position);
+
+            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
+            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
+            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
+            model_mat = glm::scale(model_mat, model_scale);
 
             shader.set_uniform<float>("material.shininess", 64.0f);
             shader.set_uniform("camera_pos", m_camera.position());
@@ -187,7 +209,7 @@ private:
             glfwSetInputMode(m_window.get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         }
 
-        static constexpr float camera_movement_speed{0.01f};
+        static constexpr float camera_movement_speed{0.1f};
 
         if (m_input_manager.key(GLFW_KEY_W)) {
             m_camera.move(sal::Camera::FORWARD, camera_movement_speed);
@@ -207,10 +229,11 @@ private:
         }
     }
 
-    sal::Camera m_camera{{0.f, 0.f, 3.f}};
+    sal::Camera m_camera{{-10.f, 4.f, 4.f}};
     double m_mouse_x{0};
     double m_mouse_y{0};
     std::chrono::high_resolution_clock::time_point m_t_start;
+    std::chrono::high_resolution_clock::time_point m_t_prev_update;
 
     std::vector<sal::Shader_program> m_shaders;
     std::vector<sal::Model> m_models;
