@@ -13,10 +13,10 @@ namespace sal {
 
 class Shader_loader {
 public:
-    static Shader_program
-    from_sources(std::string const& vert_source,
-                 std::string const& frag_source,
-                 std::initializer_list<std::string> const attrib_list) noexcept;
+    static Shader_program from_sources(std::string const& vert_source,
+                                       std::string const& frag_source,
+                                       std::initializer_list<std::string> const attrib_list,
+                                       std::vector<std::string> const uniform_list) noexcept;
 
 private:
     static void compile_shader(Shader_program& shader,

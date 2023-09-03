@@ -10,13 +10,61 @@
 static GLsizei constexpr WINDOW_WIDTH{1920};
 static GLsizei constexpr WINDOW_HEIGHT{1080};
 
-namespace {
 
 struct Rotator {
     glm::vec3 amount;
 };
 
-}; // namespace
+struct Mover {
+    glm::vec3 amount;
+};
+
+struct Sine_mover {
+    void operator()(Mover const& mover, sal::Transform& transform, float const time) noexcept
+    {
+        transform.position += sin(time) * mover.amount;
+    }
+};
+
+struct Camera_controller {
+    void operator()(double const x_offset,
+                    double const y_offset,
+                    float const amount,
+                    sal::Window_ptr const& window,
+                    sal::Input_manager const& input_manager,
+                    sal::Camera& camera_data,
+                    sal::Transform& transform) noexcept
+    {
+        if (input_manager.button(GLFW_MOUSE_BUTTON_RIGHT)) {
+            camera_data.look_around(static_cast<float>(x_offset), static_cast<float>(-y_offset),
+                                    true);
+            glfwSetInputMode(window.get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+        else {
+            glfwSetInputMode(window.get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+
+        float camera_movement_speed{5.f};
+
+        if (input_manager.key(GLFW_KEY_LEFT_SHIFT)) {
+            camera_movement_speed = 50.f;
+        }
+
+        if (input_manager.key(GLFW_KEY_W)) {
+            transform.position += camera_data.front() * amount * camera_movement_speed;
+        }
+        if (input_manager.key(GLFW_KEY_S)) {
+            transform.position -= camera_data.front() * amount * camera_movement_speed;
+        }
+        if (input_manager.key(GLFW_KEY_A)) {
+            transform.position -= camera_data.right() * amount * camera_movement_speed;
+        }
+        if (input_manager.key(GLFW_KEY_D)) {
+            transform.position += camera_data.right() * amount * camera_movement_speed;
+        }
+    }
+};
+
 
 class Market : public sal::Application {
 public:
@@ -35,13 +83,16 @@ public:
         auto v_str = sal::File_reader::read_file("../res/shaders/basic_lighting.vsh");
         auto f_str = sal::File_reader::read_file("../res/shaders/bad_lighting_frag.glsl");
 
-        m_shaders.push_back(
-            sal::Shader_loader::from_sources(v_str, f_str, {"in_uv", "in_normal", "in_pos"}));
+        m_shaders.push_back(sal::Shader_loader::from_sources(
+            v_str, f_str, {"in_uv", "in_normal", "in_pos"}, {"material"}));
 
-        auto v2_str = sal::File_reader::read_file("../res/shaders/basic_lighting.vsh");
+        auto basic_lighting_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
+        m_shaders.push_back(sal::Shader_loader::from_sources(
+            v_str, basic_lighting_str, {"in_uv", "in_normal", "in_pos"}, {"material"}));
+
         auto f2_str = sal::File_reader::read_file("../res/shaders/liquid_frag.glsl");
-        m_shaders.push_back(
-            sal::Shader_loader::from_sources(v2_str, f2_str, {"in_uv", "in_normal", "in_pos"}));
+        m_shaders.push_back(sal::Shader_loader::from_sources(
+            v_str, f2_str, {"in_uv", "in_normal", "in_pos"}, {"material", "frame"}));
 
         std::uint64_t const base_flags = aiProcess_Triangulate | aiProcess_GenNormals
                                          | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
@@ -60,7 +111,7 @@ public:
         m_registry.emplace<sal::Transform>(palace, glm::vec3{0.0f}, glm::vec3{0.0f},
                                            glm::vec3{1.0f});
         m_registry.emplace<sal::Model>(palace, m_models.back());
-        m_registry.emplace<sal::Shader_program>(palace, m_shaders.back());
+        m_registry.emplace<sal::Shader_program>(palace, m_shaders.at(1));
         static std::mt19937 rand_engine;
         auto dist{std::uniform_real_distribution<double>()};
 
@@ -73,11 +124,19 @@ public:
                                                              static_cast<float>(j)},
                                                    glm::vec3{90.0f, 0.0f, 90.f}, glm::vec3{1.0f});
                 m_registry.emplace<sal::Model>(kao, m_models.front());
-                m_registry.emplace<sal::Shader_program>(kao, m_shaders.at((i + j) % 2));
+                m_registry.emplace<sal::Shader_program>(kao, m_shaders.at((i + j) % 3));
                 m_registry.emplace<Rotator>(
                     kao, glm::vec3{0.f, dist(rand_engine) * 10.f, dist(rand_engine) * 10.f});
+                m_registry.emplace<Mover>(
+                    kao, glm::vec3{0.f, dist(rand_engine) * 0.1f, dist(rand_engine) * 0.01f});
             }
         }
+
+        entt::entity camera{m_registry.create()};
+        m_registry.emplace<sal::Transform>(camera, glm::vec3{0.0f}, glm::vec3{0.0f},
+                                           glm::vec3{1.0f});
+        m_registry.emplace<sal::Camera>(camera);
+
 
         m_t_start = std::chrono::high_resolution_clock::now();
         m_t_prev_update = m_t_start;
@@ -106,86 +165,64 @@ private:
 
         glEnable(GL_DEPTH_TEST);
 
-        auto t_now = std::chrono::high_resolution_clock::now();
-        float delta_time =
-            std::chrono::duration_cast<std::chrono::duration<float>>(t_now - m_t_prev_update)
-                .count();
-        m_t_prev_update = t_now;
 
         auto rotator_view = m_registry.view<Rotator, sal::Transform>();
         for (auto [entity, rotator, transform] : rotator_view.each()) {
-            transform.rotation += rotator.amount * delta_time;
+            transform.rotation += rotator.amount * m_delta_time;
+        }
+
+        float time_diff =
+            std::chrono::duration_cast<std::chrono::duration<float>>(m_t_prev_update - m_t_start)
+                .count();
+        auto mover_view = m_registry.view<Mover, sal::Transform>();
+        for (auto [entity, mover, transform] : mover_view.each()) {
+            Sine_mover{}(mover, transform, time_diff);
         }
     }
 
     void set_user_uniforms(sal::Shader_program& shader) noexcept final
     {
-        glm::mat4 const projection = glm::perspective(
-            glm::radians(m_camera.zoom()),
-            static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT), 0.1f, 1000.0f);
+        auto camera_view = m_registry.view<sal::Transform, sal::Camera>();
+        for (auto [entity, transform, camera] : camera_view.each()) {
 
-        glm::mat4 const view = m_camera.get_view_matrix();
+            glm::mat4 const projection = glm::perspective(glm::radians(camera.zoom()),
+                                                          static_cast<float>(m_window_width)
+                                                              / static_cast<float>(m_window_height),
+                                                          0.1f, 1000.0f);
 
-        shader.set_uniform<float>("material.shininess", 64.0f);
-        shader.set_uniform("camera_pos", m_camera.position());
-        shader.set_uniform("projection", projection);
-        shader.set_uniform("view", view);
-        /// TODO:
-        //if (shader.has_property("")) {
-        //}
-        if (shader.program_id == m_shaders.back().program_id) {
+            glm::mat4 const view = camera.get_view_matrix(transform.position);
+
+            shader.set_uniform("camera_pos", transform.position);
+            shader.set_uniform("view", view);
+            shader.set_uniform("projection", projection);
+        }
+
+        if (shader.has_uniform("frame")) {
             shader.set_uniform<std::int32_t>("frame", m_frame_counter);
         }
+
+        shader.set_uniform<float>("material.shininess", 64.0f);
     }
 
     void handle_input()
     {
-        double x;
-        double y;
-        glfwGetCursorPos(m_window.get(), &x, &y);
-
+        sal::Mouse_position const m_mouse_delta{m_input_manager.mouse_pos_delta()};
         static constexpr float sensitivity{0.1f};
 
-        double const x_offset{(x - m_mouse_x) * sensitivity};
-        double const y_offset{(y - m_mouse_y) * sensitivity};
+        double const x_offset{m_mouse_delta.x * sensitivity};
+        double const y_offset{m_mouse_delta.y * sensitivity};
 
-        m_mouse_x = x;
-        m_mouse_y = y;
-
-        if (m_input_manager.button(GLFW_MOUSE_BUTTON_RIGHT)) {
-            m_camera.look_around(static_cast<float>(x_offset), static_cast<float>(-y_offset), true);
-            glfwSetInputMode(m_window.get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        auto camera_view = m_registry.view<sal::Transform, sal::Camera>();
+        for (auto [entity, transform, camera] : camera_view.each()) {
+            m_camera_controller(x_offset, y_offset, m_delta_time, m_window, m_input_manager, camera,
+                                transform);
         }
-        else {
-            glfwSetInputMode(m_window.get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
-
-        static constexpr float camera_movement_speed{0.1f};
-
-        if (m_input_manager.key(GLFW_KEY_W)) {
-            m_camera.move(sal::Camera::FORWARD, camera_movement_speed);
-        }
-        if (m_input_manager.key(GLFW_KEY_S)) {
-            m_camera.move(sal::Camera::BACKWARD, camera_movement_speed);
-        }
-        if (m_input_manager.key(GLFW_KEY_A)) {
-            m_camera.move(sal::Camera::LEFT, camera_movement_speed);
-        }
-        if (m_input_manager.key(GLFW_KEY_D)) {
-            m_camera.move(sal::Camera::RIGHT, camera_movement_speed);
-        }
-
         if (m_input_manager.key(GLFW_KEY_ESCAPE)) {
             glfwSetWindowShouldClose(m_window.get(), true);
         }
     }
 
-    sal::Camera m_camera{{-10.f, 4.f, 4.f}};
-    double m_mouse_x{0};
-    double m_mouse_y{0};
-    std::chrono::high_resolution_clock::time_point m_t_start;
-    std::chrono::high_resolution_clock::time_point m_t_prev_update;
-
+    Camera_controller m_camera_controller{};
     std::vector<sal::Shader_program> m_shaders;
     std::vector<sal::Model> m_models;
 };

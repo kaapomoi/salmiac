@@ -8,14 +8,15 @@
 
 namespace sal {
 
-Shader_program
-Shader_loader::from_sources(std::string const& vert_source,
-                            std::string const& frag_source,
-                            std::initializer_list<std::string> const attrib_list) noexcept
+Shader_program Shader_loader::from_sources(std::string const& vert_source,
+                                           std::string const& frag_source,
+                                           std::initializer_list<std::string> const attrib_list,
+                                           std::vector<std::string> const uniform_list) noexcept
 {
     Shader_program shader;
 
     shader.program_id = glCreateProgram();
+    shader.m_uniforms = uniform_list;
 
     auto create_and_compile_shader = [&shader](std::int32_t const gl_shader_type, GLuint& shader_id,
                                                std::string const& shader_source) -> void {

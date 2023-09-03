@@ -18,32 +18,46 @@ void Input_manager::register_keys(std::initializer_list<std::int32_t> keys,
     }
 }
 
-bool Input_manager::key(std::int32_t key) noexcept
+bool Input_manager::key(std::int32_t key) const noexcept
 {
     return m_keys.at(key).down;
 }
 
-bool Input_manager::key_now(std::int32_t key) noexcept
+bool Input_manager::key_now(std::int32_t key) const noexcept
 {
     return m_keys.at(key).down_this_frame;
 }
 
-bool Input_manager::button(std::int32_t button) noexcept
+bool Input_manager::button(std::int32_t button) const noexcept
 {
     return m_buttons.at(button).down;
 }
 
-bool Input_manager::button_now(std::int32_t button) noexcept
+bool Input_manager::button_now(std::int32_t button) const noexcept
 {
     return m_buttons.at(button).down_this_frame;
 }
 
+Mouse_position Input_manager::mouse_pos() const noexcept
+{
+    return m_mouse_pos;
+}
+
+Mouse_position Input_manager::mouse_pos_delta() const noexcept
+{
+    return m_mouse_pos - m_mouse_pos_prev_frame;
+}
+
 /// TODO: Maybe just use glfwGetKey() directly instead of these callbacks.
 void Input_manager::update(std::function<bool(std::int32_t)>& key_callback,
-                           std::function<bool(std::int32_t)>& mouse_callback) noexcept
+                           std::function<bool(std::int32_t)>& mouse_callback,
+                           std::function<Mouse_position()>& mouse_position_callback) noexcept
 {
     update_internal_state(key_callback, m_keys);
     update_internal_state(mouse_callback, m_buttons);
+
+    m_mouse_pos_prev_frame = m_mouse_pos;
+    m_mouse_pos = mouse_position_callback();
 }
 
 void Input_manager::update_internal_state(std::function<bool(std::int32_t)>& input_callback,

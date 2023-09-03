@@ -8,6 +8,9 @@
 
 namespace sal {
 
+std::size_t Application::m_window_width{0};
+std::size_t Application::m_window_height{0};
+
 Application::Exit_code Application::setup(std::size_t const w_w, std::size_t const w_h) noexcept
 {
     sal::Log::init("sal_log.txt");
@@ -22,7 +25,12 @@ Application::Exit_code Application::setup(std::size_t const w_w, std::size_t con
 
     m_window = create_window(w_w, w_h);
 
-    glfwSetFramebufferSizeCallback(m_window.get(), framebuffer_size_callback);
+    glfwSetFramebufferSizeCallback(m_window.get(), [](GLFWwindow*, int width, int height) {
+        sal::Log::info("Changing framebuffer size to {} {}", width, height);
+        glViewport(0, 0, width, height);
+        m_window_width = width;
+        m_window_height = height;
+    });
 
     glViewport(0, 0, w_w, w_h);
 
@@ -39,6 +47,11 @@ Application::Exit_code Application::setup(std::size_t const w_w, std::size_t con
 
 void Application::update() noexcept
 {
+    auto t_now = std::chrono::high_resolution_clock::now();
+    m_delta_time =
+        std::chrono::duration_cast<std::chrono::duration<float>>(t_now - m_t_prev_update).count();
+    m_t_prev_update = t_now;
+
     /// Update inputs
     run_engine_tasks();
 
@@ -62,7 +75,6 @@ void Application::render_models() noexcept
         glm::vec3 model_rotation{transform.rotation};
         glm::vec3 model_scale{transform.scale};
 
-        sal::Log::info("Rotation {}", model_rotation.y);
         shader.use();
 
         glm::mat4 model_mat{1.0f};
@@ -120,7 +132,14 @@ void Application::run_engine_tasks() noexcept
         return mouse_click_callback(button);
     };
 
-    m_input_manager.update(k_cb, m_cb);
+    static std::function<Mouse_position()> mouse_pos_cb = [this]() -> Mouse_position {
+        double x;
+        double y;
+        glfwGetCursorPos(m_window.get(), &x, &y);
+        return {x, y};
+    };
+
+    m_input_manager.update(k_cb, m_cb, mouse_pos_cb);
 }
 
 void Application::register_keys(std::initializer_list<std::int32_t> keys,
@@ -129,26 +148,24 @@ void Application::register_keys(std::initializer_list<std::int32_t> keys,
     m_input_manager.register_keys(keys, mouse_buttons);
 }
 
-Window_ptr Application::create_window(GLsizei const w, GLsizei const h) noexcept
+Window_ptr Application::create_window(std::size_t const w, std::size_t const h) noexcept
 {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    auto window = sal::Window_ptr(glfwCreateWindow(w, h, "salmiac sandbox", nullptr, nullptr));
+    auto window = sal::Window_ptr(glfwCreateWindow(static_cast<GLsizei>(w), static_cast<GLsizei>(h),
+                                                   "salmiac sandbox", nullptr, nullptr));
+    m_window_width = w;
+    m_window_height = h;
 
     if (window == nullptr) {
         glfwTerminate();
         return nullptr;
     }
 
-    return window;
-}
 
-void Application::framebuffer_size_callback(GLFWwindow*, int width, int height)
-{
-    sal::Log::info("Changing framebuffer size to {} {}", width, height);
-    glViewport(0, 0, width, height);
+    return window;
 }
 
 bool Application::init_glew() noexcept

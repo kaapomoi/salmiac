@@ -33,7 +33,6 @@ public:
     enum class Exit_code : std::size_t { ok = 0, glfw_init_fail = 1, glew_init_fail = 2 };
     Exit_code setup(std::size_t const w_w, std::size_t const w_h) noexcept;
 
-
 protected:
     void update() noexcept;
 
@@ -43,7 +42,7 @@ protected:
     void register_keys(std::initializer_list<std::int32_t> keys,
                        std::initializer_list<std::int32_t> mouse_buttons) noexcept;
 
-    Window_ptr create_window(GLsizei const w, GLsizei const h) noexcept;
+    Window_ptr create_window(std::size_t const w, std::size_t const h) noexcept;
 
 
     entt::registry m_registry;
@@ -51,10 +50,15 @@ protected:
     Input_manager m_input_manager;
     bool m_suggest_close{false};
     std::size_t m_frame_counter{0};
+    float m_delta_time{0.0};
+
+    std::chrono::high_resolution_clock::time_point m_t_start;
+    std::chrono::high_resolution_clock::time_point m_t_prev_update;
+
+    static std::size_t m_window_width;
+    static std::size_t m_window_height;
 
 private:
-    static void framebuffer_size_callback(GLFWwindow*, int width, int height);
-
     void run_engine_tasks() noexcept;
 
     bool init_glew() noexcept;

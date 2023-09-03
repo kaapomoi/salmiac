@@ -6,10 +6,9 @@
 
 namespace sal {
 
-Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch) noexcept
+Camera::Camera(glm::vec3 up, float yaw, float pitch) noexcept
     : m_front{glm::vec3{1.0f, 0.0f, 0.0f}}
     , m_zoom{ZOOM}
-    , m_world_position{position}
     , m_up{up}
     , m_world_up{up}
     , m_yaw{yaw}
@@ -19,21 +18,6 @@ Camera::Camera(glm::vec3 position, glm::vec3 up, float yaw, float pitch) noexcep
     update_camera_vectors();
 }
 
-void Camera::move(Camera_movement const direction, float const amount) noexcept
-{
-    if (direction == FORWARD) {
-        m_world_position += m_front * amount;
-    }
-    if (direction == BACKWARD) {
-        m_world_position -= m_front * amount;
-    }
-    if (direction == LEFT) {
-        m_world_position -= m_right * amount;
-    }
-    if (direction == RIGHT) {
-        m_world_position += m_right * amount;
-    }
-}
 
 void Camera::look_around(float const x_offset,
                          float const y_offset,
