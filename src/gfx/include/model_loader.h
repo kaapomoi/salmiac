@@ -18,16 +18,20 @@ namespace sal {
  */
 class Model_loader {
 public:
-    static Model from_file(std::string const& full_path, std::uint64_t const import_flags) noexcept;
+    static Model from_file(std::string const& full_path,
+                           float const scale_factor,
+                           std::uint64_t const import_flags) noexcept;
 
 private:
     static void process_node(aiNode* node,
                              aiScene const* scene,
                              Model& model,
+                             float const scale_factor,
                              std::string const& directory) noexcept;
 
     static Mesh process_mesh(aiMesh* mesh,
                              aiScene const* scene,
+                             float const scale_factor,
                              std::string const& directory) noexcept;
 
     static std::vector<Texture> load_material_textures(aiMaterial* mat,

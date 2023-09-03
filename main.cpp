@@ -2,256 +2,231 @@
  * Copyright (c) https://github.com/kaapomoi 2023.
  */
 
+#include "application.h"
 #include "camera.h"
 #include "file_reader.h"
 #include "input_manager.h"
 #include "log.h"
 #include "model_loader.h"
 #include "shader_loader.h"
+#include "shader_program.h"
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
-
+#include <chrono>
+#include <map>
 #include <thread>
 
 namespace {
 
-sal::Window_ptr create_window(GLsizei const w, GLsizei const h) noexcept
-{
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    auto window = sal::Window_ptr(glfwCreateWindow(w, h, "salmiac sandbox", nullptr, nullptr));
-
-    if (window == nullptr) {
-        glfwTerminate();
-        return nullptr;
-    }
-
-    return window;
-}
-
-void framebuffer_size_callback(GLFWwindow*, int width, int height)
-{
-    sal::Log::info("Changing framebuffer size to {} {}", width, height);
-    glViewport(0, 0, width, height);
-}
-
-void handle_input(sal::Input_manager& input_manager,
-                  sal::Window_ptr const& window,
-                  sal::Camera& camera,
-                  double& last_x,
-                  double& last_y)
-{
-    double x{};
-    double y{};
-    glfwGetCursorPos(window.get(), &x, &y);
-
-    static constexpr float sensitivity{0.1f};
-
-    double const x_offset{(x - last_x) * sensitivity};
-    double const y_offset{(y - last_y) * sensitivity};
-
-    last_x = x;
-    last_y = y;
-
-    if (input_manager.button(GLFW_MOUSE_BUTTON_RIGHT)) {
-        camera.look_around(static_cast<float>(x_offset), static_cast<float>(-y_offset), true);
-        glfwSetInputMode(window.get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    }
-    else {
-        glfwSetInputMode(window.get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-
-    static constexpr float camera_movement_speed{0.1f};
-
-    if (input_manager.key(GLFW_KEY_W)) {
-        camera.move(sal::Camera::FORWARD, camera_movement_speed);
-    }
-    if (input_manager.key(GLFW_KEY_S)) {
-        camera.move(sal::Camera::BACKWARD, camera_movement_speed);
-    }
-    if (input_manager.key(GLFW_KEY_A)) {
-        camera.move(sal::Camera::LEFT, camera_movement_speed);
-    }
-    if (input_manager.key(GLFW_KEY_D)) {
-        camera.move(sal::Camera::RIGHT, camera_movement_speed);
-    }
-
-    if (input_manager.key(GLFW_KEY_ESCAPE)) {
-        glfwSetWindowShouldClose(window.get(), true);
-    }
-}
-
-bool init_glew(sal::Window_ptr const& window)
-{
-    glewExperimental = true; // Needed for core profile
-    glfwMakeContextCurrent(window.get());
-    if (glewInit() != GLEW_OK) {
-        sal::Log::fatal("Failed to initialize GLEW, Reason: %s", glGetError());
-        return false;
-    }
-
-    fprintf(stdout, "OpenGL version: %s\n", glGetString(GL_VERSION));
-    sal::Log::info("GLEW initialized!");
-    return true;
-}
-
-bool key_callback(sal::Window_ptr const& window, std::int32_t const key) noexcept
-{
-    return static_cast<bool>(glfwGetKey(window.get(), key));
-}
-
-bool mouse_click_callback(sal::Window_ptr const& window, std::int32_t const button) noexcept
-{
-    return static_cast<bool>(glfwGetMouseButton(window.get(), button));
-}
-
 
 } // namespace
 
-int main()
-{
-    static GLsizei constexpr WINDOW_WIDTH{1280};
-    static GLsizei constexpr WINDOW_HEIGHT{720};
 
-    sal::Camera camera{{0.f, 0.f, 3.f}};
-    sal::Input_manager input_manager;
-    input_manager.register_keys(
-        {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_LEFT_SHIFT, GLFW_KEY_ESCAPE},
-        {GLFW_MOUSE_BUTTON_RIGHT});
+static GLsizei constexpr WINDOW_WIDTH{1280};
+static GLsizei constexpr WINDOW_HEIGHT{720};
 
-    double mouse_x{0};
-    double mouse_y{0};
 
-    sal::Log::init("sal_log.txt");
+class Market : public sal::Application {
+public:
+    sal::Application::Exit_code start() noexcept
+    {
+        register_keys(
+            {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_LEFT_SHIFT, GLFW_KEY_ESCAPE},
+            {GLFW_MOUSE_BUTTON_RIGHT});
 
-    if (!glfwInit()) {
-        sal::Log::fatal("Failed to initialize glfw3");
-        return -1;
-    }
-    else {
-        sal::Log::info("glfw3 initialized!");
+        return setup(WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
-    auto window = create_window(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    if (!init_glew(window)) {
+    sal::Application::Exit_code run() noexcept
+    {
+        auto v_str = sal::File_reader::read_file("../res/shaders/basic_lighting.vsh");
+        auto f_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
+
+        m_shaders.push_back(
+            sal::Shader_loader::from_sources(v_str, f_str, {"in_uv", "in_normal", "in_pos"}));
+
+        auto v2_str = sal::File_reader::read_file("../res/shaders/basic_lighting.vsh");
+        auto f2_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
+        m_shaders.push_back(
+            sal::Shader_loader::from_sources(v2_str, f2_str, {"in_uv", "in_normal", "in_pos"}));
+
+        std::uint64_t const base_flags = aiProcess_Triangulate | aiProcess_GenNormals
+                                         | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
+
+        std::string const model_file{"../res/models/case/j-case.obj"};
+        float const scale_factor{1.0f};
+        m_models.push_back(
+            sal::Model_loader::from_file(model_file, scale_factor, base_flags | aiProcess_FlipUVs));
+
+        std::string const avo_file{"../res/models/Sponza/Sponza.gltf"};
+        float const scale_factor2{0.01f};
+        m_models.push_back(
+            sal::Model_loader::from_file(avo_file, scale_factor2, base_flags | aiProcess_FlipUVs));
+
+        m_shader_model_pairs.push_back({m_shaders.front(), m_models.front()});
+        m_shader_model_pairs.push_back({m_shaders.back(), m_models.back()});
+
+        m_t_start = std::chrono::high_resolution_clock::now();
+
+        while (!m_suggest_close) {
+            update();
+        }
+
+        return Exit_code::ok;
+    }
+
+    void cleanup() noexcept
+    {
+        for (auto const& shader : m_shaders) {
+            glDeleteProgram(shader.program_id);
+        }
         glfwTerminate();
-        return -1;
     }
 
-    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-    glfwSetFramebufferSizeCallback(window.get(), framebuffer_size_callback);
-
-    auto v_str = sal::File_reader::read_file("../res/shaders/basic_lighting.vsh");
-    auto f_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
-
-    auto shader = sal::Shader_loader::from_sources(v_str, f_str, {"in_uv", "in_normal", "in_pos"});
-
-    std::uint64_t const base_flags = aiProcess_Triangulate | aiProcess_GenNormals
-                                     | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
-    std::string const model_file{"../res/models/avocado/Avocado.gltf"};
-
-    auto avocado = sal::Model_loader::from_file(model_file, base_flags | aiProcess_GlobalScale
-                                                                | aiProcess_FlipUVs);
-
-    sal::Log::info("{}", shader.program_id);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    auto t_start = std::chrono::high_resolution_clock::now();
-
-    std::function<bool(std::int32_t)> k_cb = [&window](std::int32_t const key) {
-        return key_callback(window, key);
-    };
-
-    std::function<bool(std::int32_t)> m_cb = [&window](std::int32_t const button) {
-        return mouse_click_callback(window, button);
-    };
-
-    while (!glfwWindowShouldClose(window.get())) {
-        input_manager.update(k_cb, m_cb);
-
-        handle_input(input_manager, window, camera, mouse_x, mouse_y);
-
-        glClearColor(0.4f, 0.3f, 0.3f, 1.0f);
+private:
+    void run_user_tasks() noexcept final
+    {
+        handle_input();
+        glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glEnable(GL_DEPTH_TEST);
+        glm::mat4 const projection = glm::perspective(
+            glm::radians(m_camera.zoom()),
+            static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT), 0.1f, 1000.0f);
+
+        glm::mat4 const view = m_camera.get_view_matrix();
 
         auto t_now = std::chrono::high_resolution_clock::now();
         float time =
-            std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
-
-        glm::mat4 const projection = glm::perspective(
-            glm::radians(camera.zoom()),
-            static_cast<float>(WINDOW_WIDTH) / static_cast<float>(WINDOW_HEIGHT), 0.1f, 1000.0f);
-
-        glm::mat4 const view = camera.get_view_matrix();
-
-        glm::vec3 model_rotation{0.0f};
-        glm::vec3 model_position{0.0f};
-
-        shader.use();
-
-        glm::mat4 model{1.0f};
-
-        model = glm::scale(model, 10.0f * glm::vec3{1.0f, 1.0f, 1.0f});
+            std::chrono::duration_cast<std::chrono::duration<float>>(t_now - m_t_start).count();
 
 
-        model = glm::rotate(model, glm::radians(model_rotation.x * 360.0f), {1.0f, 0.0f, 0.0f});
-        model = glm::rotate(model, glm::radians(model_rotation.y * 360.0f), {0.0f, 1.0f, 0.0f});
-        model = glm::rotate(model, glm::radians(model_rotation.z * 360.0f), {0.0f, 0.0f, 1.0f});
-        model = glm::translate(model, model_position);
+        for (auto& shader_model_pair : m_shader_model_pairs) {
+            auto& shader = shader_model_pair.first;
+            auto& model = shader_model_pair.second;
 
-        shader.set_uniform<float>("material.shininess", 64.0f);
-        shader.set_uniform("camera_pos", camera.position());
-        shader.set_uniform("projection", projection);
-        shader.set_uniform("view", view);
-        shader.set_uniform("model", model);
+            sal::Log::info("Shader id {}", shader.program_id);
+            sal::Log::info("Meshes size {}", model.meshes.size());
 
-        for (auto const& mesh : avocado.meshes) {
-            for (std::int32_t i{0}; i < mesh.textures.size(); i++) {
-                glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
-                // retrieve texture number (the N in diffuse_textureN)
-                const auto texture_type = mesh.textures.at(i).type;
-                //if (texture_type == "diffuse") {
-                //    number = std::to_string(diffuse_nr++);
-                //} else if (texture_type == "specular") {
-                //    number = std::to_string(specular_nr++);
-                //}
-                std::string const uniform_identifier{"material." + sal::Texture::str(texture_type)};
+            glm::vec3 model_rotation{0.0f + time * 0.01f};
+            glm::vec3 model_position{0.0f};
 
-                // now set the sampler to the correct texture unit
-                //shader.set_int(texture_type + number, i);
-                shader.set_uniform<std::int32_t>(uniform_identifier, i);
-                glBindTexture(GL_TEXTURE_2D, mesh.textures.at(i).id);
+            shader.use();
+
+            glm::mat4 model_mat{1.0f};
+
+            model_mat = glm::scale(model_mat, glm::vec3{1.0f, 1.0f, 1.0f});
+
+
+            model_mat =
+                glm::rotate(model_mat, glm::radians(model_rotation.x * 360.0f), {1.0f, 0.0f, 0.0f});
+            model_mat =
+                glm::rotate(model_mat, glm::radians(model_rotation.y * 360.0f), {0.0f, 1.0f, 0.0f});
+            model_mat =
+                glm::rotate(model_mat, glm::radians(model_rotation.z * 360.0f), {0.0f, 0.0f, 1.0f});
+            model_mat = glm::translate(model_mat, model_position);
+
+            shader.set_uniform<float>("material.shininess", 64.0f);
+            shader.set_uniform("camera_pos", m_camera.position());
+            shader.set_uniform("projection", projection);
+            shader.set_uniform("view", view);
+            shader.set_uniform("model", model_mat);
+
+            for (auto const& mesh : model.meshes) {
+                for (std::size_t i{0}; i < mesh.textures.size(); i++) {
+                    glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
+                    // retrieve texture number (the N in diffuse_textureN)
+                    const auto texture_type = mesh.textures.at(i).type;
+                    std::string const uniform_identifier{"material."
+                                                         + sal::Texture::str(texture_type)};
+
+                    // now set the sampler to the correct texture unit
+                    shader.set_uniform<std::int32_t>(uniform_identifier, i);
+                    glBindTexture(GL_TEXTURE_2D, mesh.textures.at(i).id);
+                }
+
+                // draw mesh
+                glBindVertexArray(mesh.vao);
+                glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
+                glBindVertexArray(0);
+
+
+                glActiveTexture(GL_TEXTURE0);
             }
 
-            // draw mesh
-            glBindVertexArray(mesh.vao);
-            glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
-            glBindVertexArray(0);
+            auto const err = glGetError();
+            assert(err == GL_NO_ERROR);
 
-
-            glActiveTexture(GL_TEXTURE0);
+            shader.un_use();
         }
 
-        auto const err = glGetError();
-        assert(err == GL_NO_ERROR);
-
-        shader.un_use();
-
-        glfwSwapBuffers(window.get());
+        glfwSwapBuffers(m_window.get());
         glfwPollEvents();
     }
 
-    glDeleteProgram(shader.program_id);
+    void handle_input()
+    {
+        double x;
+        double y;
+        glfwGetCursorPos(m_window.get(), &x, &y);
 
-    glfwTerminate();
+        static constexpr float sensitivity{0.1f};
+
+        double const x_offset{(x - m_mouse_x) * sensitivity};
+        double const y_offset{(y - m_mouse_y) * sensitivity};
+
+        m_mouse_x = x;
+        m_mouse_y = y;
+
+        if (m_input_manager.button(GLFW_MOUSE_BUTTON_RIGHT)) {
+            m_camera.look_around(static_cast<float>(x_offset), static_cast<float>(-y_offset), true);
+            glfwSetInputMode(m_window.get(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+        else {
+            glfwSetInputMode(m_window.get(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+
+        static constexpr float camera_movement_speed{0.01f};
+
+        if (m_input_manager.key(GLFW_KEY_W)) {
+            m_camera.move(sal::Camera::FORWARD, camera_movement_speed);
+        }
+        if (m_input_manager.key(GLFW_KEY_S)) {
+            m_camera.move(sal::Camera::BACKWARD, camera_movement_speed);
+        }
+        if (m_input_manager.key(GLFW_KEY_A)) {
+            m_camera.move(sal::Camera::LEFT, camera_movement_speed);
+        }
+        if (m_input_manager.key(GLFW_KEY_D)) {
+            m_camera.move(sal::Camera::RIGHT, camera_movement_speed);
+        }
+
+        if (m_input_manager.key(GLFW_KEY_ESCAPE)) {
+            glfwSetWindowShouldClose(m_window.get(), true);
+        }
+    }
+
+    sal::Camera m_camera{{0.f, 0.f, 3.f}};
+    double m_mouse_x{0};
+    double m_mouse_y{0};
+    std::chrono::high_resolution_clock::time_point m_t_start;
+
+    std::vector<sal::Shader_program> m_shaders;
+    std::vector<sal::Model> m_models;
+
+    std::vector<std::pair<sal::Shader_program&, sal::Model&>> m_shader_model_pairs;
+};
+
+
+int main()
+{
+    Market app;
+    app.start();
+
+    app.run();
+
+    app.cleanup();
+
     return 0;
 }

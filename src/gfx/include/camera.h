@@ -15,12 +15,6 @@
 
 namespace sal {
 
-/// TODO: Move these to a sensible file.
-struct window_deleter {
-    void operator()(GLFWwindow* w) { glfwDestroyWindow(w); }
-};
-
-typedef std::unique_ptr<GLFWwindow, window_deleter> Window_ptr;
 
 // A camera class that processes input and calculates the corresponding Euler Angles, Vectors and Matrices for use in OpenGL
 class Camera {

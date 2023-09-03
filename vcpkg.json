@@ -31,5 +31,8 @@
     "name" : "assimp",
     "version>=" : "5.2.5",
     "$comment" : "    # this is heuristically generated, and may not be correct\n\n    find_package(assimp CONFIG REQUIRED)\n\n    target_link_libraries(main PRIVATE assimp::assimp)\n"
+  }, {
+    "name" : "entt",
+    "version>=" : "3.12.2"
   } ]
 }

@@ -8,10 +8,13 @@
 #include "mesh_binder.h"
 #include "texture_loader.h"
 
+#include <assimp/matrix4x4.h>
+
 namespace sal {
 
 
 Model Model_loader::from_file(std::string const& full_path,
+                              float const scale_factor,
                               std::uint64_t const import_flags) noexcept
 {
     Model model{};
@@ -27,7 +30,7 @@ Model Model_loader::from_file(std::string const& full_path,
     // Add one to include the last '/' in the directory string as well
     auto const directory = full_path.substr(0, full_path.find_last_of('/') + 1);
 
-    process_node(scene->mRootNode, scene, model, directory);
+    process_node(scene->mRootNode, scene, model, scale_factor, directory);
 
     for (auto& mesh : model.meshes) {
         Mesh_binder::setup(mesh);
@@ -39,22 +42,24 @@ Model Model_loader::from_file(std::string const& full_path,
 void Model_loader::process_node(aiNode* node,
                                 aiScene const* scene,
                                 Model& model,
+                                float const scale_factor,
                                 std::string const& directory) noexcept
 {
     // Process all the node's meshes (if any),
     for (std::uint32_t i{0}; i < node->mNumMeshes; i++) {
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        model.meshes.push_back(process_mesh(mesh, scene, directory));
+        model.meshes.push_back(process_mesh(mesh, scene, scale_factor, directory));
     }
 
     // then do the same for each of its children
     for (std::uint32_t i{0}; i < node->mNumChildren; i++) {
-        process_node(node->mChildren[i], scene, model, directory);
+        process_node(node->mChildren[i], scene, model, scale_factor, directory);
     }
 }
 
 Mesh Model_loader::process_mesh(aiMesh* mesh,
                                 aiScene const* scene,
+                                float const scale_factor,
                                 std::string const& directory) noexcept
 {
     std::vector<Vertex> vertices;
@@ -65,7 +70,8 @@ Mesh Model_loader::process_mesh(aiMesh* mesh,
         Vertex vertex{};
         // Process vertex positions, normals and texture coordinates
         vertex.position =
-            glm::vec3{mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z};
+            glm::vec3{mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z}
+            * scale_factor;
 
         if (mesh->HasNormals()) {
             vertex.normal =

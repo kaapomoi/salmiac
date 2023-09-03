@@ -38,6 +38,7 @@ bool Input_manager::button_now(std::int32_t button) noexcept
     return m_buttons.at(button).down_this_frame;
 }
 
+/// TODO: Maybe just use glfwGetKey() directly instead of these callbacks.
 void Input_manager::update(std::function<bool(std::int32_t)>& key_callback,
                            std::function<bool(std::int32_t)>& mouse_callback) noexcept
 {

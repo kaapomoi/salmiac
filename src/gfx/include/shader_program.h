@@ -21,7 +21,7 @@ struct Shader_program {
     GLuint program_id{0};
     std::int32_t attrib_count{0};
 
-    void use() noexcept
+    void use() const noexcept
     {
         glUseProgram(program_id);
         for (std::int32_t i{0}; i < attrib_count; i++) {
@@ -29,7 +29,7 @@ struct Shader_program {
         }
     }
 
-    void un_use() noexcept
+    void un_use() const noexcept
     {
         glUseProgram(0);
         for (std::int32_t i{0}; i < attrib_count; i++) {
@@ -62,10 +62,12 @@ struct Shader_program {
     friend class Shader_loader;
 
     Shader_program() noexcept = default;
-    Shader_program(Shader_program& other) noexcept = delete;
     Shader_program(Shader_program&& other) noexcept = default;
-    Shader_program& operator=(Shader_program& other) noexcept = delete;
     Shader_program& operator=(Shader_program&& other) noexcept = default;
+
+    /// Disallow copy constructing
+    Shader_program(Shader_program& other) noexcept = delete;
+    Shader_program& operator=(Shader_program& other) noexcept = delete;
 
 private:
     GLuint vertex_shader_id{0};
