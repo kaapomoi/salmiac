@@ -61,7 +61,7 @@ struct Shader_program {
         }
     }
 
-    bool has_uniform(std::string const& uniform) const noexcept
+    [[nodiscard]] bool has_uniform(std::string const& uniform) const noexcept
     {
         return std::find(m_uniforms.begin(), m_uniforms.end(), uniform) != m_uniforms.end();
     }
@@ -73,7 +73,7 @@ struct Shader_program {
     Shader_program& operator=(Shader_program&& other) noexcept = default;
 
     Shader_program(Shader_program& other) noexcept = default;
-    Shader_program& operator=(Shader_program& other) noexcept = default;
+    Shader_program& operator=(Shader_program const& other) noexcept = default;
 
 private:
     std::vector<std::string> m_uniforms;

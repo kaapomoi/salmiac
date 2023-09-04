@@ -164,7 +164,6 @@ Window_ptr Application::create_window(std::size_t const w, std::size_t const h) 
         return nullptr;
     }
 
-
     return window;
 }
 

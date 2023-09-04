@@ -9,7 +9,6 @@ add_library(gfx STATIC
         src/mesh_binder.cpp)
 
 find_package(Stb REQUIRED)
-find_package(glm CONFIG REQUIRED)
 find_package(assimp CONFIG REQUIRED)
 
 message(ASSIMP ${ASSIMP_LIBRARIES})

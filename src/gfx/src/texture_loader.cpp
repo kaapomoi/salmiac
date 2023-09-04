@@ -44,8 +44,8 @@ Texture Texture_loader::from_file(std::string const& full_path, Texture::Type co
     glGenTextures(1, &texture.id);
 
     glBindTexture(GL_TEXTURE_2D, texture.id);
-    glTexImage2D(GL_TEXTURE_2D, 0, format, texture.width, texture.height, 0, format,
-                 GL_UNSIGNED_BYTE, pixel_data);
+    glTexImage2D(GL_TEXTURE_2D, 0, static_cast<GLint>(format), texture.width, texture.height, 0,
+                 format, GL_UNSIGNED_BYTE, pixel_data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);

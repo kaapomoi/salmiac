@@ -33,7 +33,7 @@ struct Camera_controller {
                     sal::Window_ptr const& window,
                     sal::Input_manager const& input_manager,
                     sal::Camera& camera_data,
-                    sal::Transform& transform) noexcept
+                    sal::Transform& transform) const noexcept
     {
         if (input_manager.button(GLFW_MOUSE_BUTTON_RIGHT)) {
             camera_data.look_around(static_cast<float>(x_offset), static_cast<float>(-y_offset),
@@ -112,23 +112,22 @@ public:
                                            glm::vec3{1.0f});
         m_registry.emplace<sal::Model>(palace, m_models.back());
         m_registry.emplace<sal::Shader_program>(palace, m_shaders.at(1));
-        static std::mt19937 rand_engine;
         auto dist{std::uniform_real_distribution<double>()};
 
         for (std::size_t i{0}; i < 8; i++) {
             for (std::size_t j{0}; j < 8; j++) {
                 entt::entity kao = m_registry.create();
                 m_registry.emplace<sal::Transform>(kao,
-                                                   glm::vec3{dist(rand_engine) * 4,
-                                                             static_cast<float>(i) + 0.5f,
+                                                   glm::vec3{dist(m_rand_engine) * 4,
+                                                             static_cast<float>(i) + 5.0f,
                                                              static_cast<float>(j)},
                                                    glm::vec3{90.0f, 0.0f, 90.f}, glm::vec3{1.0f});
                 m_registry.emplace<sal::Model>(kao, m_models.front());
                 m_registry.emplace<sal::Shader_program>(kao, m_shaders.at((i + j) % 3));
                 m_registry.emplace<Rotator>(
-                    kao, glm::vec3{0.f, dist(rand_engine) * 10.f, dist(rand_engine) * 10.f});
+                    kao, glm::vec3{0.f, dist(m_rand_engine) * 10.f, dist(m_rand_engine) * 10.f});
                 m_registry.emplace<Mover>(
-                    kao, glm::vec3{0.f, dist(rand_engine) * 0.1f, dist(rand_engine) * 0.01f});
+                    kao, glm::vec3{0.f, dist(m_rand_engine) * 0.1f, dist(m_rand_engine) * 0.01f});
             }
         }
 
@@ -198,7 +197,7 @@ private:
         }
 
         if (shader.has_uniform("frame")) {
-            shader.set_uniform<std::int32_t>("frame", m_frame_counter);
+            shader.set_uniform<std::int32_t>("frame", static_cast<std::int32_t>(m_frame_counter));
         }
 
         shader.set_uniform<float>("material.shininess", 64.0f);
@@ -225,6 +224,7 @@ private:
     Camera_controller m_camera_controller{};
     std::vector<sal::Shader_program> m_shaders;
     std::vector<sal::Model> m_models;
+    std::mt19937 m_rand_engine{static_cast<std::uint32_t>(std::chrono::system_clock::now().time_since_epoch().count())};
 };
 
 
