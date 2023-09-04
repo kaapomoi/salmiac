@@ -11,7 +11,7 @@ namespace sal {
 Shader_program Shader_loader::from_sources(std::string const& vert_source,
                                            std::string const& frag_source,
                                            std::initializer_list<std::string> const attrib_list,
-                                           std::vector<std::string> const uniform_list) noexcept
+                                           std::vector<std::string> const& uniform_list) noexcept
 {
     Shader_program shader;
 

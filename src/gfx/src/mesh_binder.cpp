@@ -24,7 +24,7 @@ void Mesh_binder::setup(Mesh& mesh) noexcept
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int),
                  mesh.indices.data(), GL_STATIC_DRAW);
 
-    auto const uv_offset = (void*)(0);
+    auto const uv_offset = nullptr;
     auto const normal_offset = (void*)(offsetof(Vertex, normal));
     auto const position_offset = (void*)(offsetof(Vertex, position));
 

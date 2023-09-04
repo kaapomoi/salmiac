@@ -32,7 +32,7 @@ Application::Exit_code Application::setup(std::size_t const w_w, std::size_t con
         m_window_height = height;
     });
 
-    glViewport(0, 0, w_w, w_h);
+    glViewport(0, 0, static_cast<std::int32_t>(w_w), static_cast<std::int32_t>(w_h));
 
     if (!init_glew()) {
         glfwTerminate();
@@ -42,6 +42,8 @@ Application::Exit_code Application::setup(std::size_t const w_w, std::size_t con
     /// TODO: Make a renderer helper class?
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    return Exit_code::ok;
 }
 
 
@@ -191,4 +193,4 @@ bool Application::mouse_click_callback(std::int32_t const button) noexcept
     return static_cast<bool>(glfwGetMouseButton(m_window.get(), button));
 }
 
-}; // namespace sal
+} // namespace sal

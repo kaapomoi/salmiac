@@ -10,12 +10,11 @@
 namespace sal {
 
 struct Transform {
-    glm::vec3 position;
-    glm::vec3 rotation;
-    glm::vec3 scale;
+    glm::vec3 position{0.f};
+    glm::vec3 rotation{0.f};
+    glm::vec3 scale{0.f};
 };
 
-}; // namespace sal
-
+} // namespace sal
 
 #endif //SALMIAC_TRANSFORM_H

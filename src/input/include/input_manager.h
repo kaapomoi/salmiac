@@ -39,16 +39,16 @@ public:
                 std::function<bool(std::int32_t)>& mouse_callback,
                 std::function<Mouse_position()>& mouse_position_callback) noexcept;
 
-    bool key(std::int32_t const key) const noexcept;
+    [[nodiscard]] bool key(std::int32_t const key) const noexcept;
 
-    bool key_now(std::int32_t const key) const noexcept;
+    [[nodiscard]] bool key_now(std::int32_t const key) const noexcept;
 
-    bool button(std::int32_t const button) const noexcept;
+    [[nodiscard]] bool button(std::int32_t const button) const noexcept;
 
-    bool button_now(std::int32_t const button) const noexcept;
+    [[nodiscard]] bool button_now(std::int32_t const button) const noexcept;
 
-    Mouse_position mouse_pos() const noexcept;
-    Mouse_position mouse_pos_delta() const noexcept;
+    [[nodiscard]] Mouse_position mouse_pos() const noexcept;
+    [[nodiscard]] Mouse_position mouse_pos_delta() const noexcept;
 
 private:
     enum class Input_type : std::uint8_t { key, mouse_button };

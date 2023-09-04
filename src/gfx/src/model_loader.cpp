@@ -56,6 +56,7 @@ void Model_loader::process_node(aiNode* node,
         process_node(node->mChildren[i], scene, model, scale_factor, directory);
     }
 }
+#pragma clang diagnostic pop
 
 Mesh Model_loader::process_mesh(aiMesh* mesh,
                                 aiScene const* scene,
