@@ -70,6 +70,8 @@ void Application::update() noexcept
 
 void Application::render_models() noexcept
 {
+    std::chrono::high_resolution_clock::time_point sw_start{
+        std::chrono::high_resolution_clock::now()};
     auto render_view = m_registry.view<Transform, Model, Shader_program>();
     for (auto [entity, transform, model, shader] : render_view.each()) {
 
@@ -122,6 +124,12 @@ void Application::render_models() noexcept
 
     glfwSwapBuffers(m_window.get());
     glfwPollEvents();
+
+    std::chrono::high_resolution_clock::time_point now{std::chrono::high_resolution_clock::now()};
+
+    float time_diff =
+        std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
+    sal::Log::info("render_time: {}", time_diff);
 }
 
 void Application::run_engine_tasks() noexcept
