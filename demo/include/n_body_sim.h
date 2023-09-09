@@ -7,6 +7,7 @@
 
 #include "application.h"
 #include "oct.h"
+#include "primitives.h"
 
 #include <chrono>
 #include <random>

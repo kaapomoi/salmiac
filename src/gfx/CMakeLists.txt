@@ -6,6 +6,7 @@ add_library(gfx STATIC
         src/model_loader.cpp
         src/camera.cpp
         src/texture_loader.cpp
+        src/primitives.cpp
         src/mesh_binder.cpp)
 
 find_package(Stb REQUIRED)

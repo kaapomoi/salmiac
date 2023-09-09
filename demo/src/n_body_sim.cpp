@@ -1,5 +1,7 @@
 #include "n_body_sim.h"
 
+#include "texture_loader.h"
+
 
 sal::Application::Exit_code N_body_sim::start() noexcept
 {
@@ -29,21 +31,27 @@ sal::Application::Exit_code N_body_sim::run() noexcept
 
     auto instanced_vert = sal::File_reader::read_file("../res/shaders/instanced_vert.glsl");
     m_shaders.push_back(sal::Shader_loader::from_sources(
-        instanced_vert, basic_lighting_str,
-        {"in_uv", "in_normal", "in_pos", "in_instance_model_matrix"}, {"material", "frame"}));
+        instanced_vert, f2_str, {"in_uv", "in_normal", "in_pos", "in_instance_model_matrix"},
+        {"material", "frame"}));
 
     std::uint64_t const base_flags = aiProcess_Triangulate | aiProcess_GenNormals
                                      | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
 
-    std::string const model_file{"../res/models/case/j-case.obj"};
+    std::string const model_file{"../res/models/cube/cube.obj"};
     float const scale_factor{0.5f};
     m_models.push_back(
         sal::Model_loader::from_file(model_file, scale_factor, base_flags | aiProcess_FlipUVs));
 
+    sal::Texture cube_tex{
+        sal::Texture_loader::from_file("../res/models/j-cover.png", sal::Texture::Type::diffuse)};
+
+    sal::Mesh cube{sal::Primitive_factory::cube(glm::vec3{1.f}, {cube_tex})};
+    m_models.push_back(sal::Model{{cube}});
+
     std::string const avo_file{"../res/models/Sponza/Sponza.gltf"};
     float const scale_factor2{0.001f};
-    m_models.push_back(
-        sal::Model_loader::from_file(avo_file, scale_factor2, base_flags | aiProcess_FlipUVs));
+    //m_models.push_back(
+    //sal::Model_loader::from_file(avo_file, scale_factor2, base_flags | aiProcess_FlipUVs));
 
     /*
         entt::entity palace = m_registry.create();
@@ -71,7 +79,7 @@ sal::Application::Exit_code N_body_sim::run() noexcept
     */
     m_rand_engine.seed(time(NULL));
 
-    create_nodes(25000);
+    create_nodes(100000);
 
     entt::entity camera{m_registry.create()};
     m_registry.emplace<sal::Transform>(camera, glm::vec3{0.0f}, glm::vec3{0.0f}, glm::vec3{1.0f});
@@ -252,7 +260,7 @@ void N_body_sim::create_nodes(std::size_t const n) noexcept
 
 
         m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(n));
-        m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(0)});
+        m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(1)});
         m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
         sal::Transform t{n.position, glm::vec3{0.f}, glm::vec3{1.f}};
         m_registry.emplace<sal::Transform>(entity, t);
@@ -268,15 +276,20 @@ void N_body_sim::update_nodes() noexcept
     m_root = std::make_unique<Oct>(glm::vec3{std::numeric_limits<float>::min()},
                                    glm::vec3{std::numeric_limits<float>::max()});
     auto node_view = m_registry.view<sal::Transform, std::shared_ptr<Node>>();
-    for (auto [entity, transform, node] : node_view.each()) {
-        m_root->insert(node);
-    }
+    //for (auto [entity, transform, node] : node_view.each()) {
+    //    m_root->insert(node);
+    //}
 
     for (auto [entity, transform, node] : node_view.each()) {
-        node->force = glm::vec3{0.f};
-        m_root->update_force(node);
-        node->acceleration = node->force / node->mass;
-        node->velocity += node->acceleration * m_sim_timescale;
+        //node->force = glm::vec3{0.f};
+        //m_root->update_force(node);
+        //node->acceleration = node->force / node->mass;
+        //node->velocity += node->acceleration * m_sim_timescale;
+        glm::vec3 const perpendicular{0.f, 1.f, 0.f};
+        glm::vec3 const tangent{glm::cross(glm::normalize(node->position), perpendicular)};
+        glm::vec3 const v0{tangent * 0.001f};
+
+        node->velocity = v0;
         node->position += node->velocity * m_sim_timescale;
 
         transform.rotation = node->velocity * 10000.f * 360.f;
