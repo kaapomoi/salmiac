@@ -8,6 +8,7 @@
 #include "camera.h"
 #include "file_reader.h"
 #include "input_manager.h"
+#include "instanced.h"
 #include "log.h"
 #include "model_loader.h"
 #include "shader_loader.h"
@@ -37,7 +38,9 @@ protected:
     void update() noexcept;
 
     virtual void run_user_tasks() noexcept = 0;
-    virtual void set_user_uniforms(Shader_program& shader) noexcept = 0;
+    virtual void set_render_model_uniforms(Shader_program& shader) noexcept = 0;
+    virtual void set_user_uniforms_before_render() noexcept = 0;
+
 
     void register_keys(std::initializer_list<std::int32_t> keys,
                        std::initializer_list<std::int32_t> mouse_buttons) noexcept;
@@ -64,6 +67,7 @@ private:
     bool init_glew() noexcept;
 
     void render_models() noexcept;
+    void render_instanced() noexcept;
 
     bool key_callback(std::int32_t const key) noexcept;
     bool mouse_click_callback(std::int32_t const button) noexcept;

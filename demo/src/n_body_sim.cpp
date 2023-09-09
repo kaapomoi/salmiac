@@ -3,8 +3,8 @@
 
 sal::Application::Exit_code N_body_sim::start() noexcept
 {
-    register_keys({GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_LEFT_SHIFT,
-                   GLFW_KEY_ESCAPE, GLFW_KEY_F1},
+    register_keys({GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_LEFT_SHIFT, GLFW_KEY_E,
+                   GLFW_KEY_Q, GLFW_KEY_ESCAPE, GLFW_KEY_F1},
                   {GLFW_MOUSE_BUTTON_RIGHT});
 
     return setup(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -27,6 +27,11 @@ sal::Application::Exit_code N_body_sim::run() noexcept
     m_shaders.push_back(sal::Shader_loader::from_sources(
         v_str, f2_str, {"in_uv", "in_normal", "in_pos"}, {"material", "frame"}));
 
+    auto instanced_vert = sal::File_reader::read_file("../res/shaders/instanced_vert.glsl");
+    m_shaders.push_back(sal::Shader_loader::from_sources(
+        instanced_vert, basic_lighting_str,
+        {"in_uv", "in_normal", "in_pos", "in_instance_model_matrix"}, {"material", "frame"}));
+
     std::uint64_t const base_flags = aiProcess_Triangulate | aiProcess_GenNormals
                                      | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
 
@@ -36,9 +41,10 @@ sal::Application::Exit_code N_body_sim::run() noexcept
         sal::Model_loader::from_file(model_file, scale_factor, base_flags | aiProcess_FlipUVs));
 
     std::string const avo_file{"../res/models/Sponza/Sponza.gltf"};
-    float const scale_factor2{0.1f};
+    float const scale_factor2{0.001f};
     m_models.push_back(
         sal::Model_loader::from_file(avo_file, scale_factor2, base_flags | aiProcess_FlipUVs));
+
     /*
         entt::entity palace = m_registry.create();
         m_registry.emplace<sal::Transform>(palace, glm::vec3{0.0f}, glm::vec3{0.0f}, glm::vec3{1.0f});
@@ -63,8 +69,9 @@ sal::Application::Exit_code N_body_sim::run() noexcept
             }
         }
     */
+    m_rand_engine.seed(time(NULL));
 
-    create_nodes(10000);
+    create_nodes(25000);
 
     entt::entity camera{m_registry.create()};
     m_registry.emplace<sal::Transform>(camera, glm::vec3{0.0f}, glm::vec3{0.0f}, glm::vec3{1.0f});
@@ -115,12 +122,41 @@ void N_body_sim::run_user_tasks() noexcept
             Sine_mover{}(mover, transform, time_diff);
 
         }
-        */
+    */
     update_nodes();
 }
 
+void N_body_sim::set_user_uniforms_before_render() noexcept
+{
+    for (auto& shader : m_shaders) {
+        shader.use();
 
-void N_body_sim::set_user_uniforms(sal::Shader_program& shader) noexcept
+        auto camera_view = m_registry.view<sal::Transform, sal::Camera>();
+        for (auto [entity, transform, camera] : camera_view.each()) {
+
+            glm::mat4 const projection = glm::perspective(glm::radians(camera.zoom()),
+                                                          static_cast<float>(m_window_width)
+                                                              / static_cast<float>(m_window_height),
+                                                          0.01f, 10000.0f);
+
+            glm::mat4 const view = camera.get_view_matrix(transform.position);
+
+            shader.set_uniform("camera_pos", transform.position);
+            shader.set_uniform("view", view);
+            shader.set_uniform("projection", projection);
+        }
+
+        if (shader.has_uniform("frame")) {
+            shader.set_uniform<std::int32_t>("frame", static_cast<std::int32_t>(m_frame_counter));
+        }
+
+        shader.set_uniform<float>("material.shininess", 64.0f);
+
+        shader.un_use();
+    }
+}
+
+void N_body_sim::set_render_model_uniforms(sal::Shader_program& shader) noexcept
 {
     auto camera_view = m_registry.view<sal::Transform, sal::Camera>();
     for (auto [entity, transform, camera] : camera_view.each()) {
@@ -164,27 +200,60 @@ void N_body_sim::handle_input() noexcept
     if (m_input_manager.key(GLFW_KEY_F1)) {
         sal::Log::info("FPS: {}", (1 / m_delta_time));
     }
+    if (m_input_manager.key_now(GLFW_KEY_Q)) {
+        m_sim_timescale /= 2;
+        sal::Log::info("Timescale: {}", m_sim_timescale);
+    }
+    if (m_input_manager.key_now(GLFW_KEY_E)) {
+        m_sim_timescale *= 2;
+        sal::Log::info("Timescale: {}", m_sim_timescale);
+    }
 }
 
 
 void N_body_sim::create_nodes(std::size_t const n) noexcept
 {
     std::uniform_int_distribution<std::int32_t> position(-200, 200);
+    std::uniform_real_distribution<float> velo0(0.0001f, 0.0002f);
     std::uniform_real_distribution<float> mass(1e5, 1e5);
 
     m_root = std::make_unique<Oct>(glm::vec3{std::numeric_limits<float>::min()},
                                    glm::vec3{std::numeric_limits<float>::max()});
 
+    float const radius{300.f};
+    float const offset{75.f};
+
     for (std::size_t i{0}; i < n; i++) {
         auto entity = m_registry.create();
-        glm::vec3 p{position(m_rand_engine), position(m_rand_engine), position(m_rand_engine)};
+        //glm::vec3 p{position(m_rand_engine), position(m_rand_engine), position(m_rand_engine)};
 
-        Node n{p, {}, {}, {}, mass(m_rand_engine)};
+        float angle = (float)i / (float)n * 360.0f;
+        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float x =
+            sin(angle) * radius + displacement * 1.0f
+            + ((i % 2) ? 300.f
+                       : 0.f); // keep height of asteroid field smaller compared to width of x and z
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float y =
+            displacement * 0.2f
+            + ((i % 2) ? 300.f
+                       : 0.f); // keep height of asteroid field smaller compared to width of x and z
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float z = cos(angle) * radius + displacement;
+
+
+        glm::vec3 p{x, y, z};
+
+        glm::vec3 const perpendicular{0.f, 1.f, 0.f};
+        glm::vec3 const tangent{glm::cross(glm::normalize(p), perpendicular)};
+        glm::vec3 const v0{tangent * velo0(m_rand_engine)};
+
+        Node n{p, {}, {}, v0, mass(m_rand_engine)};
 
 
         m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(n));
-        m_registry.emplace<sal::Model>(entity, m_models.at(0));
-        m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(2));
+        m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(0)});
+        m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
         sal::Transform t{n.position, glm::vec3{0.f}, glm::vec3{1.f}};
         m_registry.emplace<sal::Transform>(entity, t);
     }
@@ -210,7 +279,7 @@ void N_body_sim::update_nodes() noexcept
         node->velocity += node->acceleration * m_sim_timescale;
         node->position += node->velocity * m_sim_timescale;
 
-        transform.rotation += node->velocity;
+        transform.rotation = node->velocity * 10000.f * 360.f;
         transform.position = node->position;
     }
 

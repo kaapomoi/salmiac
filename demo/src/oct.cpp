@@ -23,7 +23,7 @@ void Oct::update_force(std::shared_ptr<Node> const& node) noexcept
     }
 
     static const double G = 6.67e-11;
-    static const double eps = 10;
+    static const double eps = 100;
     static const float thresh = 0.5f;
 
     if (is_external()) {

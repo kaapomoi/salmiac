@@ -60,9 +60,12 @@ void Application::update() noexcept
     /// User does something with the updated inputs
     run_user_tasks();
 
-    /// Draw?
     render_models();
 
+    render_instanced();
+
+    glfwSwapBuffers(m_window.get());
+    glfwPollEvents();
 
     m_suggest_close = glfwWindowShouldClose(m_window.get());
     m_frame_counter++;
@@ -72,6 +75,9 @@ void Application::render_models() noexcept
 {
     std::chrono::high_resolution_clock::time_point sw_start{
         std::chrono::high_resolution_clock::now()};
+
+    set_user_uniforms_before_render();
+
     auto render_view = m_registry.view<Transform, Model, Shader_program>();
     for (auto [entity, transform, model, shader] : render_view.each()) {
 
@@ -90,7 +96,7 @@ void Application::render_models() noexcept
         model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
         model_mat = glm::scale(model_mat, model_scale);
 
-        set_user_uniforms(shader);
+        set_render_model_uniforms(shader);
 
         shader.set_uniform("model", model_mat);
 
@@ -122,15 +128,121 @@ void Application::render_models() noexcept
         shader.un_use();
     }
 
-    glfwSwapBuffers(m_window.get());
-    glfwPollEvents();
+    std::chrono::high_resolution_clock::time_point const now{
+        std::chrono::high_resolution_clock::now()};
 
-    std::chrono::high_resolution_clock::time_point now{std::chrono::high_resolution_clock::now()};
-
-    float time_diff =
+    float const time_diff =
         std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-    sal::Log::info("render_time: {}", time_diff);
+    sal::Log::info("render_time_models: {}", time_diff);
 }
+
+void Application::render_instanced() noexcept
+{
+    std::chrono::high_resolution_clock::time_point sw_start{
+        std::chrono::high_resolution_clock::now()};
+
+    set_user_uniforms_before_render();
+
+    std::vector<glm::mat4> model_matrices;
+    auto render_view = m_registry.view<Transform, Instanced, Shader_program>();
+    for (auto [entity, transform, instanced, shader] : render_view.each()) {
+        glm::vec3 model_position{transform.position};
+        glm::vec3 model_rotation{transform.rotation};
+        glm::vec3 model_scale{transform.scale};
+
+        glm::mat4 model_mat{1.0f};
+
+        model_mat = glm::translate(model_mat, model_position);
+
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
+        model_mat = glm::scale(model_mat, model_scale);
+
+        model_matrices.push_back(model_mat);
+        //set_render_model_uniforms(shader);
+    }
+
+    std::uint32_t instanced_vbo;
+    glGenBuffers(1, &instanced_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, instanced_vbo);
+    glBufferData(GL_ARRAY_BUFFER, model_matrices.size() * sizeof(glm::mat4), &model_matrices[0],
+                 GL_DYNAMIC_DRAW);
+
+    for (auto [e, t, i, s] : render_view.each()) {
+        for (auto mesh : i.model.meshes) {
+            std::uint32_t instanced_vao = mesh.vao;
+            glBindVertexArray(instanced_vao);
+
+            glEnableVertexAttribArray(3);
+            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+            glEnableVertexAttribArray(4);
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                                  (void*)(sizeof(glm::vec4)));
+            glEnableVertexAttribArray(5);
+            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                                  (void*)(2 * sizeof(glm::vec4)));
+            glEnableVertexAttribArray(6);
+            glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                                  (void*)(3 * sizeof(glm::vec4)));
+
+            glVertexAttribDivisor(3, 1);
+            glVertexAttribDivisor(4, 1);
+            glVertexAttribDivisor(5, 1);
+            glVertexAttribDivisor(6, 1);
+
+            glBindVertexArray(0);
+        }
+        // TODO: remove hack vvv
+        break;
+    }
+
+    for (auto [entity, transform, instanced, shader] : render_view.each()) {
+
+        shader.use();
+
+        for (auto const& mesh : instanced.model.meshes) {
+            for (std::size_t i{0}; i < mesh.textures.size(); i++) {
+                glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
+                // retrieve texture number (the N in diffuse_textureN)
+                const auto texture_type = mesh.textures.at(i).type;
+                std::string const uniform_identifier{"material." + sal::Texture::str(texture_type)};
+
+                // now set the sampler to the correct texture unit
+                shader.set_uniform<std::int32_t>(uniform_identifier, i);
+                glBindTexture(GL_TEXTURE_2D, mesh.textures.at(i).id);
+            }
+
+            // draw mesh
+            glBindVertexArray(mesh.vao);
+            glDrawElementsInstanced(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr,
+                                    model_matrices.size());
+            glBindVertexArray(0);
+
+
+            glActiveTexture(GL_TEXTURE0);
+        }
+
+        auto const err = glGetError();
+        assert(err == GL_NO_ERROR);
+
+
+        shader.un_use();
+
+        /// TODO: remove hack vvv
+        break;
+    }
+
+    glDeleteBuffers(1, &instanced_vbo);
+
+    std::chrono::high_resolution_clock::time_point const now{
+        std::chrono::high_resolution_clock::now()};
+
+    float const time_diff =
+        std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
+    sal::Log::info("render_time_instanced: {}", time_diff);
+}
+
 
 void Application::run_engine_tasks() noexcept
 {

@@ -81,7 +81,8 @@ public:
 private:
     void run_user_tasks() noexcept final;
 
-    void set_user_uniforms(sal::Shader_program& shader) noexcept final;
+    void set_render_model_uniforms(sal::Shader_program& shader) noexcept final;
+    void set_user_uniforms_before_render() noexcept final;
 
     void handle_input() noexcept;
 
@@ -91,8 +92,7 @@ private:
     Camera_controller m_camera_controller{};
     std::vector<sal::Shader_program> m_shaders;
     std::vector<sal::Model> m_models;
-    std::mt19937 m_rand_engine{
-        static_cast<std::uint32_t>(std::chrono::system_clock::now().time_since_epoch().count())};
+    std::mt19937 m_rand_engine;
     float m_sim_timescale{1000.f};
 
     std::unique_ptr<Oct> m_root{nullptr};
