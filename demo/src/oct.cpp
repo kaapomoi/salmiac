@@ -4,11 +4,16 @@
 
 #include "oct.h"
 
+#include "log.h"
+
 #include <algorithm>
 
 Oct::Oct(glm::vec3 const front_top_left, glm::vec3 const back_bot_right) noexcept
     : m_front_top_left(front_top_left), m_back_bottom_right(back_bot_right)
 {
+    m_width = back_bot_right.x - m_front_top_left.x;
+    m_height = back_bot_right.y - m_front_top_left.y;
+    m_depth = back_bot_right.z - m_front_top_left.z;
 }
 
 
@@ -26,11 +31,15 @@ void Oct::update_force(std::shared_ptr<Node> const& node) noexcept
     static const double eps = 100;
     static const float thresh = 0.5f;
 
+    static const double smoothing = 0.0;
+
+
     if (is_external()) {
         glm::vec3 delta{node->position - m_node->position};
         double const dist{sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)};
         double const F{(G * m_node->mass * node->mass) / (dist * dist + eps * eps)};
-        node->force -= glm::vec3{F * delta.x / dist, F * delta.y / dist, F * delta.z / dist};
+        node->force -= glm::vec3{F * delta.x / (dist + smoothing), F * delta.y / (dist + smoothing),
+                                 F * delta.z / (dist + smoothing)};
     }
     else if (m_width
                  / sqrt((node->position.x - m_center_of_mass.x)

@@ -45,41 +45,16 @@ sal::Application::Exit_code N_body_sim::run() noexcept
     sal::Texture cube_tex{
         sal::Texture_loader::from_file("../res/models/j-cover.png", sal::Texture::Type::diffuse)};
 
-    sal::Mesh cube{sal::Primitive_factory::cube(glm::vec3{1.f}, {cube_tex})};
+    sal::Mesh cube{sal::Primitive_factory::cube(glm::vec3{scale_factor}, {cube_tex})};
     m_models.push_back(sal::Model{{cube}});
 
     std::string const avo_file{"../res/models/Sponza/Sponza.gltf"};
     float const scale_factor2{0.001f};
-    //m_models.push_back(
-    //sal::Model_loader::from_file(avo_file, scale_factor2, base_flags | aiProcess_FlipUVs));
 
-    /*
-        entt::entity palace = m_registry.create();
-        m_registry.emplace<sal::Transform>(palace, glm::vec3{0.0f}, glm::vec3{0.0f}, glm::vec3{1.0f});
-        m_registry.emplace<sal::Model>(palace, m_models.back());
-        m_registry.emplace<sal::Shader_program>(palace, m_shaders.at(1));
-        auto dist{std::uniform_real_distribution<double>()};
 
-        for (std::size_t i{0}; i < 8; i++) {
-            for (std::size_t j{0}; j < 8; j++) {
-                entt::entity kao = m_registry.create();
-                m_registry.emplace<sal::Transform>(kao,
-                                                   glm::vec3{dist(m_rand_engine) * 4,
-                                                             static_cast<float>(i) + 5.0f,
-                                                             static_cast<float>(j)},
-                                                   glm::vec3{90.0f, 0.0f, 90.f}, glm::vec3{1.0f});
-                m_registry.emplace<sal::Model>(kao, m_models.front());
-                m_registry.emplace<sal::Shader_program>(kao, m_shaders.at((i + j) % 3));
-                m_registry.emplace<Rotator>(
-                    kao, glm::vec3{0.f, dist(m_rand_engine) * 10.f, dist(m_rand_engine) * 10.f});
-                m_registry.emplace<Mover>(
-                    kao, glm::vec3{0.f, dist(m_rand_engine) * 0.1f, dist(m_rand_engine) * 0.01f});
-            }
-        }
-    */
     m_rand_engine.seed(time(NULL));
 
-    create_nodes(100000);
+    create_nodes(25000);
 
     entt::entity camera{m_registry.create()};
     m_registry.emplace<sal::Transform>(camera, glm::vec3{0.0f}, glm::vec3{0.0f}, glm::vec3{1.0f});
@@ -116,21 +91,6 @@ void N_body_sim::run_user_tasks() noexcept
 
     glEnable(GL_DEPTH_TEST);
 
-    /*
-        auto rotator_view = m_registry.view<Rotator, sal::Transform>();
-        for (auto [entity, rotator, transform] : rotator_view.each()) {
-            transform.rotation += rotator.amount * m_delta_time;
-        }
-
-        float time_diff =
-            std::chrono::duration_cast<std::chrono::duration<float>>(m_t_prev_update - m_t_start)
-                .count();
-        auto mover_view = m_registry.view<Mover, sal::Transform>();
-        for (auto [entity, mover, transform] : mover_view.each()) {
-            Sine_mover{}(mover, transform, time_diff);
-
-        }
-    */
     update_nodes();
 }
 
@@ -223,7 +183,7 @@ void N_body_sim::create_nodes(std::size_t const n) noexcept
 {
     std::uniform_int_distribution<std::int32_t> position(-200, 200);
     std::uniform_real_distribution<float> velo0(0.0001f, 0.0002f);
-    std::uniform_real_distribution<float> mass(1e5, 1e5);
+    std::uniform_real_distribution<float> mass(5e5, 5e5);
 
     m_root = std::make_unique<Oct>(glm::vec3{std::numeric_limits<float>::min()},
                                    glm::vec3{std::numeric_limits<float>::max()});
@@ -231,38 +191,44 @@ void N_body_sim::create_nodes(std::size_t const n) noexcept
     float const radius{300.f};
     float const offset{75.f};
 
+
+    glm::vec3 p{0.f};
+    Node node{p, {}, {}, glm::vec3{0.0001f, 0.f, 0.f}, 5e5};
+    auto entity = m_registry.create();
+    m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(node));
+    m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(1)});
+    m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
+    sal::Transform t{p, glm::vec3{0.f}, glm::vec3{10.f}};
+    m_registry.emplace<sal::Transform>(entity, t);
+
     for (std::size_t i{0}; i < n; i++) {
         auto entity = m_registry.create();
         //glm::vec3 p{position(m_rand_engine), position(m_rand_engine), position(m_rand_engine)};
 
         float angle = (float)i / (float)n * 360.0f;
         float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float x =
-            sin(angle) * radius + displacement * 1.0f
-            + ((i % 2) ? 300.f
-                       : 0.f); // keep height of asteroid field smaller compared to width of x and z
+        float x = sin(angle) * radius + displacement * 1.0f + ((i % 2) ? 300.f : 0.f);
         displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float y =
-            displacement * 0.2f
-            + ((i % 2) ? 300.f
-                       : 0.f); // keep height of asteroid field smaller compared to width of x and z
+        float y = displacement * 0.2f + ((i % 2) ? 150.f : -150.f);
         displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
         float z = cos(angle) * radius + displacement;
 
 
         glm::vec3 p{x, y, z};
 
+
         glm::vec3 const perpendicular{0.f, 1.f, 0.f};
         glm::vec3 const tangent{glm::cross(glm::normalize(p), perpendicular)};
         glm::vec3 const v0{tangent * velo0(m_rand_engine)};
 
-        Node n{p, {}, {}, v0, mass(m_rand_engine)};
+        Node node{p, {}, {}, v0, mass(m_rand_engine)};
 
+        float const m{mass(m_rand_engine)};
 
-        m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(n));
+        m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(node));
         m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(1)});
         m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
-        sal::Transform t{n.position, glm::vec3{0.f}, glm::vec3{1.f}};
+        sal::Transform t{node.position, glm::vec3{0.f}, glm::vec3{1.f}};
         m_registry.emplace<sal::Transform>(entity, t);
     }
 }
@@ -273,23 +239,17 @@ void N_body_sim::update_nodes() noexcept
     std::chrono::high_resolution_clock::time_point sw_start{
         std::chrono::high_resolution_clock::now()};
     m_root.reset();
-    m_root = std::make_unique<Oct>(glm::vec3{std::numeric_limits<float>::min()},
-                                   glm::vec3{std::numeric_limits<float>::max()});
+    m_root = std::make_unique<Oct>(glm::vec3{-20000}, glm::vec3{20000});
     auto node_view = m_registry.view<sal::Transform, std::shared_ptr<Node>>();
-    //for (auto [entity, transform, node] : node_view.each()) {
-    //    m_root->insert(node);
-    //}
+    for (auto [entity, transform, node] : node_view.each()) {
+        m_root->insert(node);
+    }
 
     for (auto [entity, transform, node] : node_view.each()) {
-        //node->force = glm::vec3{0.f};
-        //m_root->update_force(node);
-        //node->acceleration = node->force / node->mass;
-        //node->velocity += node->acceleration * m_sim_timescale;
-        glm::vec3 const perpendicular{0.f, 1.f, 0.f};
-        glm::vec3 const tangent{glm::cross(glm::normalize(node->position), perpendicular)};
-        glm::vec3 const v0{tangent * 0.001f};
-
-        node->velocity = v0;
+        node->force = glm::vec3{0.f};
+        m_root->update_force(node);
+        node->acceleration = node->force / node->mass;
+        node->velocity += node->acceleration * m_sim_timescale;
         node->position += node->velocity * m_sim_timescale;
 
         transform.rotation = node->velocity * 10000.f * 360.f;

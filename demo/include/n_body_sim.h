@@ -15,22 +15,6 @@
 static GLsizei constexpr WINDOW_WIDTH{1920};
 static GLsizei constexpr WINDOW_HEIGHT{1080};
 
-
-struct Rotator {
-    glm::vec3 amount;
-};
-
-struct Mover {
-    glm::vec3 amount;
-};
-
-struct Sine_mover {
-    void operator()(Mover const& mover, sal::Transform& transform, float const time) noexcept
-    {
-        transform.position += sin(time) * mover.amount;
-    }
-};
-
 struct Camera_controller {
     void operator()(double const x_offset,
                     double const y_offset,
