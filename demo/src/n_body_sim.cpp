@@ -6,7 +6,7 @@
 sal::Application::Exit_code N_body_sim::start() noexcept
 {
     register_keys({GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_LEFT_SHIFT, GLFW_KEY_E,
-                   GLFW_KEY_Q, GLFW_KEY_ESCAPE, GLFW_KEY_F1},
+                   GLFW_KEY_Q, GLFW_KEY_R, GLFW_KEY_ESCAPE, GLFW_KEY_F1},
                   {GLFW_MOUSE_BUTTON_RIGHT});
 
     return setup(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -54,7 +54,7 @@ sal::Application::Exit_code N_body_sim::run() noexcept
 
     m_rand_engine.seed(time(NULL));
 
-    create_nodes(25000);
+    create_nodes(50000);
 
     entt::entity camera{m_registry.create()};
     m_registry.emplace<sal::Transform>(camera, glm::vec3{0.0f}, glm::vec3{0.0f}, glm::vec3{1.0f});
@@ -176,6 +176,9 @@ void N_body_sim::handle_input() noexcept
         m_sim_timescale *= 2;
         sal::Log::info("Timescale: {}", m_sim_timescale);
     }
+    if (m_input_manager.key_now(GLFW_KEY_R)) {
+        m_should_restart_sim = true;
+    }
 }
 
 
@@ -192,50 +195,89 @@ void N_body_sim::create_nodes(std::size_t const n) noexcept
     float const offset{75.f};
 
 
-    glm::vec3 p{0.f};
-    Node node{p, {}, {}, glm::vec3{0.0001f, 0.f, 0.f}, 5e5};
-    auto entity = m_registry.create();
-    m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(node));
-    m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(1)});
-    m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
-    sal::Transform t{p, glm::vec3{0.f}, glm::vec3{10.f}};
-    m_registry.emplace<sal::Transform>(entity, t);
+    // glm::vec3 p{0.f};
+    // Node node{p, {}, {}, glm::vec3{0.0001f, 0.f, 0.f}, 5e6};
+    // auto entity = m_registry.create();
+    // m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(node));
+    // m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(1)});
+    // m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
+    // sal::Transform t{p, glm::vec3{0.f}, glm::vec3{10.f}};
+    // m_registry.emplace<sal::Transform>(entity, t);
+    /*
+        for (std::size_t i{0}; i < n; i++) {
+            auto entity = m_registry.create();
+            //glm::vec3 p{position(m_rand_engine), position(m_rand_engine), position(m_rand_engine)};
 
-    for (std::size_t i{0}; i < n; i++) {
-        auto entity = m_registry.create();
-        //glm::vec3 p{position(m_rand_engine), position(m_rand_engine), position(m_rand_engine)};
-
-        float angle = (float)i / (float)n * 360.0f;
-        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float x = sin(angle) * radius + displacement * 1.0f + ((i % 2) ? 300.f : 0.f);
-        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float y = displacement * 0.2f + ((i % 2) ? 150.f : -150.f);
-        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float z = cos(angle) * radius + displacement;
-
-
-        glm::vec3 p{x, y, z};
+            float angle = (float)i / (float)n * 360.0f;
+            float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+            float x = sin(angle) * radius + displacement * 1.0f + ((i % 2) ? 300.f : 0.f);
+            displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+            float y = displacement * 0.2f + ((i % 2) ? 150.f : -150.f);
+            displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+            float z = cos(angle) * radius + displacement;
 
 
-        glm::vec3 const perpendicular{0.f, 1.f, 0.f};
-        glm::vec3 const tangent{glm::cross(glm::normalize(p), perpendicular)};
-        glm::vec3 const v0{tangent * velo0(m_rand_engine)};
+            glm::vec3 p{x, y, z};
 
-        Node node{p, {}, {}, v0, mass(m_rand_engine)};
 
-        float const m{mass(m_rand_engine)};
+            glm::vec3 const perpendicular{0.f, 1.f, 0.f};
+            glm::vec3 const tangent{glm::cross(glm::normalize(p), perpendicular)};
+            glm::vec3 const v0{tangent * velo0(m_rand_engine)};
 
-        m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(node));
-        m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(1)});
-        m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
-        sal::Transform t{node.position, glm::vec3{0.f}, glm::vec3{1.f}};
-        m_registry.emplace<sal::Transform>(entity, t);
+            Node node{p, {}, {}, v0, mass(m_rand_engine)};
+
+            float const m{mass(m_rand_engine)};
+
+            m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(node));
+            m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(1)});
+            m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
+            sal::Transform t{node.position, glm::vec3{0.f}, glm::vec3{1.f}};
+            m_registry.emplace<sal::Transform>(entity, t);
+        }
+        */
+
+    std::uniform_real_distribution<float> pos0(-1.0f, 1.0f);
+    for (std::size_t j{0}; j < 10; j++) {
+        glm::vec3 const offset{pos0(m_rand_engine) * 200.f, pos0(m_rand_engine) * 200.f,
+                               pos0(m_rand_engine) * 200.f};
+        for (std::size_t i{0}; i < (n * 0.1); i++) {
+            auto entity = m_registry.create();
+            //glm::vec3 p{position(m_rand_engine), position(m_rand_engine), position(m_rand_engine)};
+
+            glm::vec3 const p{pos0(m_rand_engine), pos0(m_rand_engine), pos0(m_rand_engine)};
+
+            glm::vec3 const p_norm{glm::normalize(p)};
+
+            glm::vec3 const perpendicular{0.f, 1.f, 0.f};
+            glm::vec3 const tangent{glm::cross(p_norm, perpendicular)};
+            glm::vec3 const v0{tangent * velo0(m_rand_engine)};
+
+            Node node{p_norm * radius * 0.2f + offset, {}, {}, v0, mass(m_rand_engine)};
+
+            float const m{mass(m_rand_engine)};
+
+            m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(node));
+            m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(1)});
+            m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
+            sal::Transform t{node.position, glm::vec3{0.f}, glm::vec3{1.f}};
+            m_registry.emplace<sal::Transform>(entity, t);
+        }
     }
 }
 
 
 void N_body_sim::update_nodes() noexcept
 {
+    if (m_should_restart_sim) {
+        m_should_restart_sim = false;
+
+        auto node_view =
+            m_registry
+                .view<std::shared_ptr<Node>, sal::Transform, sal::Instanced, sal::Shader_program>();
+        m_registry.destroy(node_view.begin(), node_view.end());
+        create_nodes(50000);
+    }
+
     std::chrono::high_resolution_clock::time_point sw_start{
         std::chrono::high_resolution_clock::now()};
     m_root.reset();

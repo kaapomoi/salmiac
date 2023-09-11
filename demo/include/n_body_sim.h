@@ -78,7 +78,8 @@ private:
     std::vector<sal::Shader_program> m_shaders;
     std::vector<sal::Model> m_models;
     std::mt19937 m_rand_engine;
-    float m_sim_timescale{1000.f};
+    float m_sim_timescale{10.f};
+    bool m_should_restart_sim{false};
 
     std::unique_ptr<Oct> m_root{nullptr};
 };
