@@ -42,19 +42,29 @@ sal::Application::Exit_code N_body_sim::run() noexcept
     m_models.push_back(
         sal::Model_loader::from_file(model_file, scale_factor, base_flags | aiProcess_FlipUVs));
 
-    sal::Texture cube_tex{
-        sal::Texture_loader::from_file("../res/models/j-cover.png", sal::Texture::Type::diffuse)};
+    sal::Texture cube_tex{sal::Texture_loader::from_file("../res/models/case/j-cover.png",
+                                                         sal::Texture::Type::diffuse)};
 
     sal::Mesh cube{sal::Primitive_factory::cube(glm::vec3{scale_factor}, {cube_tex})};
     m_models.push_back(sal::Model{{cube}});
 
-    std::string const avo_file{"../res/models/Sponza/Sponza.gltf"};
-    float const scale_factor2{0.001f};
+    auto text_vert = sal::File_reader::read_file("../res/shaders/basic_text_vert.glsl");
+    auto text_frag = sal::File_reader::read_file("../res/shaders/basic_text_frag.glsl");
+    m_shaders.push_back(sal::Shader_loader::from_sources(
+        text_vert, text_frag, {"in_uv", "in_normal", "in_pos"}, {"atlas", "color"}));
+    m_fonts.emplace_back(m_font_loader.create("../res/fonts/calibri.ttf"));
+
+    auto entity = m_registry.create();
+    sal::Text t{"Hello, world", m_fonts.front(), glm::vec2{0}, glm::vec2{1.f}};
+    m_registry.emplace<sal::Text>(entity, t);
+    m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(4));
+    sal::Transform tf{glm::vec3{0}, glm::vec3{0.f}, glm::vec3{1000.f}};
+    m_registry.emplace<sal::Transform>(entity, tf);
 
 
     m_rand_engine.seed(time(NULL));
 
-    create_nodes(50000);
+    create_nodes(500);
 
     entt::entity camera{m_registry.create()};
     m_registry.emplace<sal::Transform>(camera, glm::vec3{0.0f}, glm::vec3{0.0f}, glm::vec3{1.0f});

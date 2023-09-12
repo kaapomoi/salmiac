@@ -7,11 +7,13 @@
 
 #include "camera.h"
 #include "file_reader.h"
+#include "font_loader.h"
 #include "input_manager.h"
 #include "instanced.h"
 #include "log.h"
 #include "model_loader.h"
 #include "shader_loader.h"
+#include "text.h"
 #include "transform.h"
 
 #include "entt/entity/registry.hpp"
@@ -51,6 +53,7 @@ protected:
     entt::registry m_registry;
     Window_ptr m_window;
     Input_manager m_input_manager;
+    Font_loader m_font_loader;
     bool m_suggest_close{false};
     std::size_t m_frame_counter{0};
     float m_delta_time{0.0};
@@ -68,6 +71,7 @@ private:
 
     void render_models() noexcept;
     void render_instanced() noexcept;
+    void render_text() noexcept;
 
     bool key_callback(std::int32_t const key) noexcept;
     bool mouse_click_callback(std::int32_t const button) noexcept;

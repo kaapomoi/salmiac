@@ -11,6 +11,19 @@ namespace sal {
 std::size_t Application::m_window_width{0};
 std::size_t Application::m_window_height{0};
 
+void GLAPIENTRY MessageCallback(GLenum source,
+                                GLenum type,
+                                GLuint id,
+                                GLenum severity,
+                                GLsizei length,
+                                const GLchar* message,
+                                const void* userParam)
+{
+    fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+            (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
+}
+
+
 Application::Exit_code Application::setup(std::size_t const w_w, std::size_t const w_h) noexcept
 {
     sal::Log::init("sal_log.txt");
@@ -43,6 +56,10 @@ Application::Exit_code Application::setup(std::size_t const w_w, std::size_t con
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    // During init, enable debug output
+    glEnable(GL_DEBUG_OUTPUT);
+    glDebugMessageCallback(MessageCallback, 0);
+
     return Exit_code::ok;
 }
 
@@ -63,6 +80,7 @@ void Application::update() noexcept
     render_models();
 
     render_instanced();
+    render_text();
 
     glfwSwapBuffers(m_window.get());
     glfwPollEvents();
@@ -122,7 +140,11 @@ void Application::render_models() noexcept
         }
 
         auto const err = glGetError();
-        assert(err == GL_NO_ERROR);
+        if (err) {
+            sal::Log::error("OpenGL error: {}", err);
+            assert(err == GL_NO_ERROR);
+            return;
+        }
 
 
         shader.un_use();
@@ -224,7 +246,11 @@ void Application::render_instanced() noexcept
         }
 
         auto const err = glGetError();
-        assert(err == GL_NO_ERROR);
+        if (err) {
+            sal::Log::error("OpenGL error: {}", err);
+            assert(err == GL_NO_ERROR);
+            return;
+        }
 
 
         shader.un_use();
@@ -243,6 +269,67 @@ void Application::render_instanced() noexcept
     sal::Log::info("render_time_instanced: {}", time_diff);
 }
 
+void Application::render_text() noexcept
+{
+    std::chrono::high_resolution_clock::time_point sw_start{
+        std::chrono::high_resolution_clock::now()};
+
+    /// TODO: don't loop through the shader cache
+    set_user_uniforms_before_render();
+
+    auto render_view = m_registry.view<Transform, Text, Shader_program>();
+    for (auto [entity, transform, text, shader] : render_view.each()) {
+
+        glm::vec3 model_position{transform.position};
+        glm::vec3 model_rotation{transform.rotation};
+        glm::vec3 model_scale{transform.scale};
+
+        shader.use();
+
+        glm::mat4 model_mat{1.0f};
+
+        model_mat = glm::translate(model_mat, model_position);
+
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
+        model_mat = glm::scale(model_mat, model_scale);
+
+        shader.set_uniform("model", model_mat);
+
+        shader.set_uniform<glm::vec4>("color", text.color());
+
+        for (auto const& mesh : text.char_quads()) {
+            glActiveTexture(GL_TEXTURE0); // activate proper texture unit before binding
+            shader.set_uniform<std::int32_t>("atlas", 0);
+
+
+            glBindTexture(GL_TEXTURE_2D, mesh.textures.front().id);
+
+            // draw mesh
+            glBindVertexArray(mesh.vao);
+            glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_BYTE, nullptr);
+            glBindVertexArray(0);
+        }
+        glActiveTexture(GL_TEXTURE0);
+
+        auto const err = glGetError();
+        if (err) {
+            sal::Log::error("OpenGL error: {}", err);
+            assert(err == GL_NO_ERROR);
+            return;
+        }
+
+        shader.un_use();
+    }
+
+    std::chrono::high_resolution_clock::time_point const now{
+        std::chrono::high_resolution_clock::now()};
+
+    float const time_diff =
+        std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
+    sal::Log::info("render_time_text: {}", time_diff);
+}
 
 void Application::run_engine_tasks() noexcept
 {

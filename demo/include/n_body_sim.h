@@ -8,6 +8,7 @@
 #include "application.h"
 #include "oct.h"
 #include "primitives.h"
+#include "text.h"
 
 #include <chrono>
 #include <random>
@@ -77,6 +78,8 @@ private:
     Camera_controller m_camera_controller{};
     std::vector<sal::Shader_program> m_shaders;
     std::vector<sal::Model> m_models;
+    std::vector<sal::Font> m_fonts;
+    std::vector<sal::Text> m_texts;
     std::mt19937 m_rand_engine;
     float m_sim_timescale{10.f};
     bool m_should_restart_sim{false};
