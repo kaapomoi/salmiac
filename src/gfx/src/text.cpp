@@ -68,6 +68,7 @@ Text::Text(std::string const& content,
                                 + m_font.character_info.at(c).bitmap_w / m_font.atlas.width,
                             m_font.character_info.at(c).bitmap_h / m_font.atlas.height},
                   normal, glm::vec3{x2 + w, -y2 - h, 0}};
+
         quad.vertices = {v0, v1, v2, v3};
         quad.indices = {0, 1, 2, 1, 2, 3};
         quad.textures = {Texture{m_font.atlas.id, m_font.atlas.width, m_font.atlas.height}};
