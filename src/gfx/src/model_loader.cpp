@@ -34,9 +34,6 @@ Model Model_loader::from_file(std::string const& full_path,
 
     for (auto& mesh : model.meshes) {
         Mesh_binder::setup(mesh);
-        for (auto const vert : mesh.indices) {
-            Log::warn("{},", vert);
-        }
     }
 
     return model;

@@ -52,6 +52,9 @@ struct Shader_program {
         else if constexpr (std::is_same_v<T, glm::vec3>) {
             glUniform3fv(glGetUniformLocation(program_id, name.c_str()), 1, glm::value_ptr(value));
         }
+        else if constexpr (std::is_same_v<T, glm::vec4>) {
+            glUniform4fv(glGetUniformLocation(program_id, name.c_str()), 1, glm::value_ptr(value));
+        }
         else if constexpr (std::is_same_v<T, glm::mat4>) {
             auto res = glGetUniformLocation(program_id, name.c_str());
             glUniformMatrix4fv(res, 1, GL_FALSE, glm::value_ptr(value));

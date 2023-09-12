@@ -18,11 +18,11 @@ void Mesh_binder::setup(Mesh& mesh) noexcept
     glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo);
 
     glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(Vertex), mesh.vertices.data(),
-                 GL_STATIC_DRAW);
+                 GL_DYNAMIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int),
-                 mesh.indices.data(), GL_STATIC_DRAW);
+                 mesh.indices.data(), GL_DYNAMIC_DRAW);
 
     auto const uv_offset = nullptr;
     auto const normal_offset = (void*)(offsetof(Vertex, normal));
