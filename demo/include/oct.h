@@ -18,6 +18,8 @@ public:
 
     void insert(std::shared_ptr<Node> const& node) noexcept;
 
+    glm::vec3 const& center_of_mass() noexcept;
+
 private:
     bool is_external() const noexcept;
 

@@ -54,17 +54,17 @@ sal::Application::Exit_code N_body_sim::run() noexcept
         text_vert, text_frag, {"in_uv", "in_normal", "in_pos"}, {"atlas", "color"}));
     m_fonts.emplace_back(m_font_loader.create("../res/fonts/calibri.ttf"));
 
-    auto entity = m_registry.create();
-    sal::Text t{"Hello, world", m_fonts.front(), glm::vec2{0}, glm::vec2{1.f}};
-    m_registry.emplace<sal::Text>(entity, t);
-    m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(4));
-    sal::Transform tf{glm::vec3{0}, glm::vec3{0.f}, glm::vec3{1.f}};
-    m_registry.emplace<sal::Transform>(entity, tf);
 
+    auto entity2 = m_registry.create();
+    sal::Text text{"Hello, world", m_fonts.front(), glm::vec2{0}, glm::vec2{0.1f}};
+    m_registry.emplace<sal::Text>(entity2, text);
+    m_registry.emplace<sal::Shader_program>(entity2, m_shaders.at(4));
+    sal::Transform t{glm::vec3{0.f}, glm::vec3{0.f}, glm::vec3{1.f}};
+    m_registry.emplace<sal::Transform>(entity2, t);
 
     m_rand_engine.seed(time(NULL));
 
-    create_nodes(500);
+    create_nodes(50000);
 
     entt::entity camera{m_registry.create()};
     m_registry.emplace<sal::Transform>(camera, glm::vec3{0.0f}, glm::vec3{0.0f}, glm::vec3{1.0f});
@@ -105,7 +105,16 @@ void N_body_sim::run_user_tasks() noexcept
 
     auto text_view = m_registry.view<sal::Transform, sal::Text>();
     for (auto [entity, transform, text] : text_view.each()) {
-        transform.rotation += glm::vec3{0, 0.1f, 1.f};
+        auto c_of_m = m_root->center_of_mass();
+        std::string x{std::to_string(c_of_m.x)};
+        std::string y{std::to_string(c_of_m.y)};
+        std::string z{std::to_string(c_of_m.z)};
+        x.resize(5);
+        y.resize(5);
+        z.resize(5);
+        std::string a{x + "," + y + "," + z};
+        text.set_content(a);
+        transform.position = c_of_m;
     }
 }
 

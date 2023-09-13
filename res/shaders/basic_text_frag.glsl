@@ -11,7 +11,12 @@ uniform vec4 color;
 
 void main()
 {
-    vec4 texture_color = vec4(1.0,1.0,1.0,texture(atlas, vs_uv).r) * color;
+    float text_alpha = texture(atlas, vs_uv).r;
+    if (text_alpha < 0.1){
+        discard;
+    }
+
+    vec4 texture_color = vec4(1.0,1.0,1.0,text_alpha) * color;
 
     fs_color = texture_color;
 }

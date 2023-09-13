@@ -208,6 +208,10 @@ void Oct::insert(std::shared_ptr<Node> const& node) noexcept
     }
 }
 
+glm::vec3 const& Oct::center_of_mass() noexcept
+{
+    return m_center_of_mass;
+}
 
 bool Oct::is_external() const noexcept
 {

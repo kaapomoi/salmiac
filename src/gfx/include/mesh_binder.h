@@ -12,6 +12,10 @@ namespace sal {
 class Mesh_binder {
 public:
     static void setup(Mesh& mesh) noexcept;
+
+    static void set_buffer_data(Mesh& mesh) noexcept;
+
+    static void clear_buffer_data(Mesh& mesh) noexcept;
 };
 
 } // namespace sal

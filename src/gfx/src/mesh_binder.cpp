@@ -41,6 +41,37 @@ void Mesh_binder::setup(Mesh& mesh) noexcept
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), position_offset);
 
     glBindVertexArray(0);
+    mesh.initialized = true;
+}
+
+void Mesh_binder::set_buffer_data(Mesh& mesh) noexcept
+{
+    glBindVertexArray(mesh.vao);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo);
+
+    glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(Vertex), mesh.vertices.data(),
+                 GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int),
+                 mesh.indices.data(), GL_STATIC_DRAW);
+    glBindVertexArray(0);
+}
+
+/// TODO: Fix this. GL_ERR "Buffer object must be bound"
+void Mesh_binder::clear_buffer_data(Mesh& mesh) noexcept
+{
+    if (mesh.vao && mesh.vbo && mesh.ebo) {
+        glBindVertexArray(mesh.vao);
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo);
+
+        glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+
+        glBindVertexArray(0);
+    }
 }
 
 } // namespace sal

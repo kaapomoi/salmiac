@@ -313,7 +313,6 @@ void Application::render_text() noexcept
             glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
             glBindVertexArray(0);
         }
-        glActiveTexture(GL_TEXTURE0);
 
         auto const err = glGetError();
         if (err) {

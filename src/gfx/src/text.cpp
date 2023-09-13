@@ -9,9 +9,9 @@
 
 namespace sal {
 
-std::vector<Mesh> const& Text::char_quads() noexcept
+std::vector<Mesh> Text::char_quads() noexcept
 {
-    return m_char_quads;
+    return std::vector<Mesh>{m_char_quads.begin(), m_char_quads.begin() + m_content.length()};
 }
 
 glm::vec4 const& Text::color() noexcept
@@ -24,20 +24,39 @@ glm::vec2 const& Text::size() noexcept
     return m_size;
 }
 
+void Text::set_content(std::string const& content) noexcept
+{
+    bool const dirty{m_content != content};
+    m_content = content;
+    if (dirty) {
+        for (std::size_t i{0}; i < m_content.size(); i++) {
+            //Mesh_binder::clear_buffer_data(m_char_quads.at(i));
+        }
+        update_character_quads();
+    }
+}
+
 Text::Text(std::string const& content,
            Font& font,
            glm::vec2 const& pos,
            glm::vec2 const& scale,
            glm::vec4 const color) noexcept
-    : m_font{font}, m_content{content}, m_color{color}
+    : m_content{content}, m_font{font}, m_pos{pos}, m_scale{scale}, m_color{color}
 {
-    float x{pos.x};
-    float y{pos.y};
-    float const sx{scale.x};
-    float const sy{scale.y};
+    m_char_quads.resize(max_content_length);
+    update_character_quads();
+}
+
+void Text::update_character_quads() noexcept
+{
+    float x{m_pos.x};
+    float y{m_pos.y};
+    float const sx{m_scale.x};
+    float const sy{m_scale.y};
 
     /// Create text
-    for (auto const& character : content) {
+    std::size_t index{0};
+    for (auto const& character : m_content) {
         std::size_t c{static_cast<size_t>(character - 32)};
         float x2{x + m_font.character_info.at(c).bitmap_left * sx};
         float y2{-y - m_font.character_info.at(c).bitmap_top * sy};
@@ -48,14 +67,15 @@ Text::Text(std::string const& content,
         x += m_font.character_info.at(c).advance_x * sx;
         y += m_font.character_info.at(c).advance_y * sy;
 
+        Mesh& quad{m_char_quads.at(index++)};
+
         // Skip glyphs without pixels
         if (!w || !h) {
             continue;
         }
 
-        static glm::vec3 normal{0.f, 0.f, -1.f};
 
-        Mesh quad;
+        static glm::vec3 normal{0.f, 0.f, -1.f};
 
         Vertex v0{glm::vec2{m_font.character_info.at(c).atlas_offset_x, 0}, normal,
                   glm::vec3{x2, -y2, 0}};
@@ -78,9 +98,12 @@ Text::Text(std::string const& content,
         quad.indices = {0, 1, 2, 1, 2, 3};
         quad.textures = {Texture{m_font.atlas.id, m_font.atlas.width, m_font.atlas.height}};
 
-        Mesh_binder::setup(quad);
-
-        m_char_quads.push_back(quad);
+        if (!quad.initialized) {
+            Mesh_binder::setup(quad);
+        }
+        else {
+            Mesh_binder::set_buffer_data(quad);
+        }
     }
 
     m_size = {x, y};

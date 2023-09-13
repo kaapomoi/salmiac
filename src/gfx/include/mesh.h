@@ -20,6 +20,7 @@ struct Mesh {
     std::uint32_t vao{0};
     std::uint32_t vbo{0};
     std::uint32_t ebo{0};
+    bool initialized{false};
 };
 
 } // namespace sal
