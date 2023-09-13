@@ -293,6 +293,9 @@ void Application::render_text() noexcept
         model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
         model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
         model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
+
+        model_mat = glm::translate(model_mat, -glm::vec3{text.size().x / 2, 0, 0});
+
         model_mat = glm::scale(model_mat, model_scale);
 
         shader.set_uniform("model", model_mat);
@@ -303,12 +306,11 @@ void Application::render_text() noexcept
             glActiveTexture(GL_TEXTURE0); // activate proper texture unit before binding
             shader.set_uniform<std::int32_t>("atlas", 0);
 
-
             glBindTexture(GL_TEXTURE_2D, mesh.textures.front().id);
 
             // draw mesh
             glBindVertexArray(mesh.vao);
-            glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_BYTE, nullptr);
+            glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
             glBindVertexArray(0);
         }
         glActiveTexture(GL_TEXTURE0);

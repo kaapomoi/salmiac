@@ -58,7 +58,7 @@ sal::Application::Exit_code N_body_sim::run() noexcept
     sal::Text t{"Hello, world", m_fonts.front(), glm::vec2{0}, glm::vec2{1.f}};
     m_registry.emplace<sal::Text>(entity, t);
     m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(4));
-    sal::Transform tf{glm::vec3{0}, glm::vec3{0.f}, glm::vec3{1000.f}};
+    sal::Transform tf{glm::vec3{0}, glm::vec3{0.f}, glm::vec3{1.f}};
     m_registry.emplace<sal::Transform>(entity, tf);
 
 
@@ -102,6 +102,11 @@ void N_body_sim::run_user_tasks() noexcept
     glEnable(GL_DEPTH_TEST);
 
     update_nodes();
+
+    auto text_view = m_registry.view<sal::Transform, sal::Text>();
+    for (auto [entity, transform, text] : text_view.each()) {
+        transform.rotation += glm::vec3{0, 0.1f, 1.f};
+    }
 }
 
 void N_body_sim::set_user_uniforms_before_render() noexcept

@@ -19,17 +19,22 @@ glm::vec4 const& Text::color() noexcept
     return m_color;
 }
 
+glm::vec2 const& Text::size() noexcept
+{
+    return m_size;
+}
+
 Text::Text(std::string const& content,
            Font& font,
            glm::vec2 const& pos,
-           glm::vec2 const& size,
+           glm::vec2 const& scale,
            glm::vec4 const color) noexcept
     : m_font{font}, m_content{content}, m_color{color}
 {
     float x{pos.x};
     float y{pos.y};
-    float const sx{size.x};
-    float const sy{size.y};
+    float const sx{scale.x};
+    float const sy{scale.y};
 
     /// Create text
     for (auto const& character : content) {
@@ -77,6 +82,8 @@ Text::Text(std::string const& content,
 
         m_char_quads.push_back(quad);
     }
+
+    m_size = {x, y};
 }
 
 

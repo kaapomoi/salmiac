@@ -46,7 +46,7 @@ Font Font_loader::create(std::string const& path) noexcept
             continue;
         }
 
-        w += g->bitmap.width;
+        w += g->bitmap.width + 1;
         h = std::max(h, g->bitmap.rows);
     }
 
@@ -102,10 +102,9 @@ Font Font_loader::generate_texture_atlas(FT_Face& face,
         result.character_info.at(char_info_index).bitmap_left = glyph->bitmap_left;
         result.character_info.at(char_info_index).bitmap_top = glyph->bitmap_top;
 
-        result.character_info.at(char_info_index).atlas_offset_x =
-            static_cast<float>(x_offset) / static_cast<float>(w);
+        result.character_info.at(char_info_index).atlas_offset_x = static_cast<float>(x_offset) / w;
 
-        x_offset += glyph->bitmap.width;
+        x_offset += glyph->bitmap.width + 1;
     }
 
     glBindTexture(GL_TEXTURE_2D, 0);
