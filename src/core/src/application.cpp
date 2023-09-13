@@ -306,12 +306,15 @@ void Application::render_text() noexcept
             glActiveTexture(GL_TEXTURE0); // activate proper texture unit before binding
             shader.set_uniform<std::int32_t>("atlas", 0);
 
-            glBindTexture(GL_TEXTURE_2D, mesh.textures.front().id);
+            /// TODO: Fix this hack. Spaces are causing the texture to be empty.
+            if (!mesh.textures.empty()) {
+                glBindTexture(GL_TEXTURE_2D, mesh.textures.front().id);
 
-            // draw mesh
-            glBindVertexArray(mesh.vao);
-            glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
-            glBindVertexArray(0);
+                // draw mesh
+                glBindVertexArray(mesh.vao);
+                glDrawElements(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr);
+                glBindVertexArray(0);
+            }
         }
 
         auto const err = glGetError();

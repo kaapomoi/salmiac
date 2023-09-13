@@ -112,7 +112,7 @@ void N_body_sim::run_user_tasks() noexcept
         x.resize(5);
         y.resize(5);
         z.resize(5);
-        std::string a{x + "," + y + "," + z};
+        std::string a{x + ", " + y + ", " + z};
         text.set_content(a);
         transform.position = c_of_m;
     }
