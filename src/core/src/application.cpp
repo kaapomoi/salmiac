@@ -294,7 +294,8 @@ void Application::render_text() noexcept
         model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
         model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
 
-        model_mat = glm::translate(model_mat, -glm::vec3{text.size().x / 2, 0, 0});
+        model_mat = glm::translate(model_mat, -glm::vec3{(text.size().x * model_scale.x) / 2,
+                                                         (text.size().y * model_scale.y) / 2, 0});
 
         model_mat = glm::scale(model_mat, model_scale);
 

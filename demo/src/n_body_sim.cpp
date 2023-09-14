@@ -56,7 +56,7 @@ sal::Application::Exit_code N_body_sim::run() noexcept
 
 
     auto entity2 = m_registry.create();
-    sal::Text text{"Hello, world", m_fonts.front(), glm::vec2{0}, glm::vec2{0.1f}};
+    sal::Text text{"Hello, world", m_fonts.front(), glm::vec2{0}, glm::vec2{0.5f}};
     m_registry.emplace<sal::Text>(entity2, text);
     m_registry.emplace<sal::Shader_program>(entity2, m_shaders.at(4));
     sal::Transform t{glm::vec3{0.f}, glm::vec3{0.f}, glm::vec3{1.f}};
@@ -115,6 +115,7 @@ void N_body_sim::run_user_tasks() noexcept
         std::string a{x + ", " + y + ", " + z};
         text.set_content(a);
         transform.position = c_of_m;
+        transform.rotation += glm::vec3{1.f, 1.f, 0.f};
     }
 }
 

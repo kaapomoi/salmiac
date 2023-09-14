@@ -54,15 +54,17 @@ void Text::update_character_quads() noexcept
     float const sx{m_scale.x};
     float const sy{m_scale.y};
 
+    float max_h{0.f};
+
     /// Create text
     std::size_t index{0};
     for (auto const& character : m_content) {
-        std::size_t c{static_cast<size_t>(character - 32)};
-        float x2{x + m_font.character_info.at(c).bitmap_left * sx};
-        float y2{-y - m_font.character_info.at(c).bitmap_top * sy};
+        std::size_t const c{static_cast<size_t>(character - 32)};
+        float const x2{x + m_font.character_info.at(c).bitmap_left * sx};
+        float const y2{-y - m_font.character_info.at(c).bitmap_top * sy};
 
-        float w{m_font.character_info.at(c).bitmap_w * sx};
-        float h{m_font.character_info.at(c).bitmap_h * sy};
+        float const w{m_font.character_info.at(c).bitmap_w * sx};
+        float const h{m_font.character_info.at(c).bitmap_h * sy};
 
         x += m_font.character_info.at(c).advance_x * sx;
         y += m_font.character_info.at(c).advance_y * sy;
@@ -70,12 +72,13 @@ void Text::update_character_quads() noexcept
         Mesh& quad{m_char_quads.at(index++)};
 
         // Skip glyphs without pixels
+        // TODO: Check if this causes the issue with spaces.
         if (!w || !h) {
             continue;
         }
 
 
-        static glm::vec3 normal{0.f, 0.f, -1.f};
+        static glm::vec3 const normal{0.f, 0.f, -1.f};
 
         Vertex v0{glm::vec2{m_font.character_info.at(c).atlas_offset_x, 0}, normal,
                   glm::vec3{x2, -y2, 0}};
@@ -104,9 +107,14 @@ void Text::update_character_quads() noexcept
         else {
             Mesh_binder::set_buffer_data(quad);
         }
-    }
 
-    m_size = {x, y};
+        max_h = std::max(max_h, h);
+
+        /// Last character, set final size
+        if (index == m_content.size() - 1) {
+            m_size = {x, max_h};
+        }
+    }
 }
 
 
