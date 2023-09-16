@@ -3,11 +3,12 @@
  */
 
 #include "application.h"
+#include "conquest.h"
 #include "n_body_sim.h"
 
 int main()
 {
-    N_body_sim app;
+    Conquest app;
     app.start();
 
     app.run();

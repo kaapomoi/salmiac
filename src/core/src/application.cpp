@@ -78,7 +78,6 @@ void Application::update() noexcept
     run_user_tasks();
 
     render_models();
-
     render_instanced();
     render_text();
 
@@ -182,7 +181,6 @@ void Application::render_instanced() noexcept
         model_mat = glm::scale(model_mat, model_scale);
 
         model_matrices.push_back(model_mat);
-        //set_render_model_uniforms(shader);
     }
 
     std::uint32_t instanced_vbo;
@@ -193,29 +191,28 @@ void Application::render_instanced() noexcept
 
     for (auto [e, t, i, s] : render_view.each()) {
         for (auto mesh : i.model.meshes) {
-            std::uint32_t instanced_vao = mesh.vao;
-            glBindVertexArray(instanced_vao);
+            glBindVertexArray(mesh.vao);
 
-            glEnableVertexAttribArray(3);
-            glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
             glEnableVertexAttribArray(4);
-            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                                  (void*)(sizeof(glm::vec4)));
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
             glEnableVertexAttribArray(5);
             glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
-                                  (void*)(2 * sizeof(glm::vec4)));
+                                  (void*)(sizeof(glm::vec4)));
             glEnableVertexAttribArray(6);
             glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+                                  (void*)(2 * sizeof(glm::vec4)));
+            glEnableVertexAttribArray(7);
+            glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
                                   (void*)(3 * sizeof(glm::vec4)));
 
-            glVertexAttribDivisor(3, 1);
             glVertexAttribDivisor(4, 1);
             glVertexAttribDivisor(5, 1);
             glVertexAttribDivisor(6, 1);
+            glVertexAttribDivisor(7, 1);
 
             glBindVertexArray(0);
         }
-        // TODO: remove hack vvv
+        // TODO: Remove hack. There can only be one type of instanced objects ATM.
         break;
     }
 
@@ -255,7 +252,7 @@ void Application::render_instanced() noexcept
 
         shader.un_use();
 
-        /// TODO: remove hack vvv
+        // TODO: Remove hack. There can only be one type of instanced objects ATM.
         break;
     }
 
@@ -300,8 +297,6 @@ void Application::render_text() noexcept
         model_mat = glm::scale(model_mat, model_scale);
 
         shader.set_uniform("model", model_mat);
-
-        shader.set_uniform<glm::vec4>("color", text.color());
 
         for (auto const& mesh : text.char_quads()) {
             glActiveTexture(GL_TEXTURE0); // activate proper texture unit before binding

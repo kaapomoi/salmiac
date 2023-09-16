@@ -24,9 +24,13 @@ void Mesh_binder::setup(Mesh& mesh) noexcept
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int),
                  mesh.indices.data(), GL_STATIC_DRAW);
 
+    /// TODO: Auto-generate attributes based on Vertex Type
+
+
     auto const uv_offset = nullptr;
     auto const normal_offset = (void*)(offsetof(Vertex, normal));
     auto const position_offset = (void*)(offsetof(Vertex, position));
+    auto const color_offset = (void*)(offsetof(Vertex, color));
 
     // vertex texture coords
     glEnableVertexAttribArray(0);
@@ -39,6 +43,10 @@ void Mesh_binder::setup(Mesh& mesh) noexcept
     // vertex positions
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), position_offset);
+
+    // vertex colors
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), color_offset);
 
     glBindVertexArray(0);
     mesh.initialized = true;
@@ -61,6 +69,7 @@ void Mesh_binder::set_buffer_data(Mesh& mesh) noexcept
 /// TODO: Fix this. GL_ERR "Buffer object must be bound"
 void Mesh_binder::clear_buffer_data(Mesh& mesh) noexcept
 {
+    /// TODO: only check what is needed
     if (mesh.vao && mesh.vbo && mesh.ebo) {
         glBindVertexArray(mesh.vao);
         glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo);

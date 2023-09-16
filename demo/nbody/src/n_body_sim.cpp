@@ -9,7 +9,7 @@ sal::Application::Exit_code N_body_sim::start() noexcept
                    GLFW_KEY_Q, GLFW_KEY_R, GLFW_KEY_ESCAPE, GLFW_KEY_F1},
                   {GLFW_MOUSE_BUTTON_RIGHT});
 
-    return setup(WINDOW_WIDTH, WINDOW_HEIGHT);
+    return setup(1920, 1080);
 }
 
 
@@ -19,19 +19,20 @@ sal::Application::Exit_code N_body_sim::run() noexcept
     auto f_str = sal::File_reader::read_file("../res/shaders/bad_lighting_frag.glsl");
 
     m_shaders.push_back(sal::Shader_loader::from_sources(
-        v_str, f_str, {"in_uv", "in_normal", "in_pos"}, {"material"}));
+        v_str, f_str, {"in_uv", "in_normal", "in_pos", "in_color"}, {"material"}));
 
     auto basic_lighting_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
     m_shaders.push_back(sal::Shader_loader::from_sources(
-        v_str, basic_lighting_str, {"in_uv", "in_normal", "in_pos"}, {"material"}));
+        v_str, basic_lighting_str, {"in_uv", "in_normal", "in_pos", "in_color"}, {"material"}));
 
     auto f2_str = sal::File_reader::read_file("../res/shaders/liquid_frag.glsl");
     m_shaders.push_back(sal::Shader_loader::from_sources(
-        v_str, f2_str, {"in_uv", "in_normal", "in_pos"}, {"material", "frame"}));
+        v_str, f2_str, {"in_uv", "in_normal", "in_pos", "in_color"}, {"material", "frame"}));
 
     auto instanced_vert = sal::File_reader::read_file("../res/shaders/instanced_vert.glsl");
     m_shaders.push_back(sal::Shader_loader::from_sources(
-        instanced_vert, f2_str, {"in_uv", "in_normal", "in_pos", "in_instance_model_matrix"},
+        instanced_vert, f2_str,
+        {"in_uv", "in_normal", "in_pos", "in_color", "in_instance_model_matrix"},
         {"material", "frame"}));
 
     std::uint64_t const base_flags = aiProcess_Triangulate | aiProcess_GenNormals
@@ -56,7 +57,8 @@ sal::Application::Exit_code N_body_sim::run() noexcept
 
 
     auto entity2 = m_registry.create();
-    sal::Text text{"Hello, world", m_fonts.front(), glm::vec2{0}, glm::vec2{0.5f}};
+    sal::Text text{"Hello, world", m_fonts.front(), glm::vec2{0}, glm::vec2{0.5f},
+                   glm::vec4{0.8f, 0.8f, 0.8f, 0.5f}};
     m_registry.emplace<sal::Text>(entity2, text);
     m_registry.emplace<sal::Shader_program>(entity2, m_shaders.at(4));
     sal::Transform t{glm::vec3{0.f}, glm::vec3{0.f}, glm::vec3{1.f}};
@@ -219,56 +221,12 @@ void N_body_sim::create_nodes(std::size_t const n) noexcept
     float const radius{300.f};
     float const offset{75.f};
 
-
-    // glm::vec3 p{0.f};
-    // Node node{p, {}, {}, glm::vec3{0.0001f, 0.f, 0.f}, 5e6};
-    // auto entity = m_registry.create();
-    // m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(node));
-    // m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(1)});
-    // m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
-    // sal::Transform t{p, glm::vec3{0.f}, glm::vec3{10.f}};
-    // m_registry.emplace<sal::Transform>(entity, t);
-    /*
-        for (std::size_t i{0}; i < n; i++) {
-            auto entity = m_registry.create();
-            //glm::vec3 p{position(m_rand_engine), position(m_rand_engine), position(m_rand_engine)};
-
-            float angle = (float)i / (float)n * 360.0f;
-            float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-            float x = sin(angle) * radius + displacement * 1.0f + ((i % 2) ? 300.f : 0.f);
-            displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-            float y = displacement * 0.2f + ((i % 2) ? 150.f : -150.f);
-            displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-            float z = cos(angle) * radius + displacement;
-
-
-            glm::vec3 p{x, y, z};
-
-
-            glm::vec3 const perpendicular{0.f, 1.f, 0.f};
-            glm::vec3 const tangent{glm::cross(glm::normalize(p), perpendicular)};
-            glm::vec3 const v0{tangent * velo0(m_rand_engine)};
-
-            Node node{p, {}, {}, v0, mass(m_rand_engine)};
-
-            float const m{mass(m_rand_engine)};
-
-            m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(node));
-            m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(1)});
-            m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
-            sal::Transform t{node.position, glm::vec3{0.f}, glm::vec3{1.f}};
-            m_registry.emplace<sal::Transform>(entity, t);
-        }
-        */
-
     std::uniform_real_distribution<float> pos0(-1.0f, 1.0f);
     for (std::size_t j{0}; j < 10; j++) {
         glm::vec3 const offset{pos0(m_rand_engine) * 200.f, pos0(m_rand_engine) * 200.f,
                                pos0(m_rand_engine) * 200.f};
         for (std::size_t i{0}; i < (n * 0.1); i++) {
             auto entity = m_registry.create();
-            //glm::vec3 p{position(m_rand_engine), position(m_rand_engine), position(m_rand_engine)};
-
             glm::vec3 const p{pos0(m_rand_engine), pos0(m_rand_engine), pos0(m_rand_engine)};
 
             glm::vec3 const p_norm{glm::normalize(p)};
@@ -277,7 +235,7 @@ void N_body_sim::create_nodes(std::size_t const n) noexcept
             glm::vec3 const tangent{glm::cross(p_norm, perpendicular)};
             glm::vec3 const v0{tangent * velo0(m_rand_engine)};
 
-            Node node{p_norm * radius * 0.2f + offset, {}, {}, v0, mass(m_rand_engine)};
+            Node node{p_norm * radius * 0.3f + offset, {}, {}, v0, mass(m_rand_engine)};
 
             float const m{mass(m_rand_engine)};
 

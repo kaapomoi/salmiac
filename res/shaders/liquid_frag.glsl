@@ -10,6 +10,7 @@ struct Material {
 in vec2 vs_uv;
 in vec3 vs_normal;
 in vec3 vs_pos;
+in vec4 vs_color;
 
 out vec4 fs_color;
 
@@ -88,5 +89,5 @@ void main()
     hsv_col.z *= 0.25;
 
     // Output to screen
-    fs_color = vec4(hsv2rgb(hsv_col),1.0);
+    fs_color = vec4(hsv2rgb(hsv_col),1.0) * vs_color;
 }

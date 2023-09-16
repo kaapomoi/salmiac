@@ -8,4 +8,4 @@ add_subdirectory(demo)
 
 add_executable(salmiac main.cpp)
 
-target_link_libraries(salmiac PRIVATE demo)
+target_link_libraries(salmiac PRIVATE nbody conquest)

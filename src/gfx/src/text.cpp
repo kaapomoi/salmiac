@@ -81,21 +81,21 @@ void Text::update_character_quads() noexcept
         static glm::vec3 const normal{0.f, 0.f, -1.f};
 
         Vertex v0{glm::vec2{m_font.character_info.at(c).atlas_offset_x, 0}, normal,
-                  glm::vec3{x2, -y2, 0}};
+                  glm::vec3{x2, -y2, 0}, m_color};
 
         Vertex v1{glm::vec2{m_font.character_info.at(c).atlas_offset_x
                                 + m_font.character_info.at(c).bitmap_w / m_font.atlas.width,
                             0},
-                  normal, glm::vec3{x2 + w, -y2, 0}};
+                  normal, glm::vec3{x2 + w, -y2, 0}, m_color};
 
         Vertex v2{glm::vec2{m_font.character_info.at(c).atlas_offset_x,
                             m_font.character_info.at(c).bitmap_h / m_font.atlas.height},
-                  normal, glm::vec3{x2, -y2 - h, 0}};
+                  normal, glm::vec3{x2, -y2 - h, 0}, m_color};
 
         Vertex v3{glm::vec2{m_font.character_info.at(c).atlas_offset_x
                                 + m_font.character_info.at(c).bitmap_w / m_font.atlas.width,
                             m_font.character_info.at(c).bitmap_h / m_font.atlas.height},
-                  normal, glm::vec3{x2 + w, -y2 - h, 0}};
+                  normal, glm::vec3{x2 + w, -y2 - h, 0}, m_color};
 
         quad.vertices = {v0, v1, v2, v3};
         quad.indices = {0, 1, 2, 1, 2, 3};
