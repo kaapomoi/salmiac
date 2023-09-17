@@ -7,6 +7,7 @@
 
 #include "application.h"
 #include "camera_controller.h"
+#include "game.h"
 #include "primitives.h"
 
 #include <chrono>
@@ -37,6 +38,10 @@ private:
     std::mt19937 m_rand_engine;
     float m_sim_timescale{10.f};
     bool m_should_restart_sim{false};
+    std::vector<Game> m_games;
+    std::vector<glm::vec4> m_cell_colors{{1.f, 0.f, 0.f, 1.f}, {0.f, 1.f, 0.f, 1.f},
+                                         {0.f, 0.f, 1.f, 1.f}, {1.f, 1.f, 0.f, 1.f},
+                                         {1.f, 0.f, 1.f, 1.f}, {0.f, 1.f, 1.f, 1.f}};
 };
 
 #endif

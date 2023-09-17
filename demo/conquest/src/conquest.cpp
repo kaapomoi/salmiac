@@ -6,7 +6,7 @@
 sal::Application::Exit_code Conquest::start() noexcept
 {
     register_keys({GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_LEFT_SHIFT, GLFW_KEY_E,
-                   GLFW_KEY_Q, GLFW_KEY_R, GLFW_KEY_ESCAPE, GLFW_KEY_F1},
+                   GLFW_KEY_Q, GLFW_KEY_R, GLFW_KEY_1, GLFW_KEY_2, GLFW_KEY_ESCAPE, GLFW_KEY_F1},
                   {GLFW_MOUSE_BUTTON_RIGHT});
 
     return setup(1920, 1080);
@@ -16,32 +16,27 @@ sal::Application::Exit_code Conquest::start() noexcept
 sal::Application::Exit_code Conquest::run() noexcept
 {
     auto v_str = sal::File_reader::read_file("../res/shaders/basic_lighting.vsh");
-    auto f_str = sal::File_reader::read_file("../res/shaders/bad_lighting_frag.glsl");
+    auto f_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
 
     m_shaders.push_back(sal::Shader_loader::from_sources(
-        v_str, f_str, {"in_uv", "in_normal", "in_pos", "in_color"}, {"material"}));
+        v_str, f_str, {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}}, {"material"}));
 
-    auto basic_lighting_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
-    m_shaders.push_back(sal::Shader_loader::from_sources(
-        v_str, basic_lighting_str, {"in_uv", "in_normal", "in_pos", "in_color"}, {"material"}));
 
-    auto f2_str = sal::File_reader::read_file("../res/shaders/liquid_frag.glsl");
-    m_shaders.push_back(sal::Shader_loader::from_sources(
-        v_str, f2_str, {"in_uv", "in_normal", "in_pos", "in_color"}, {"material", "frame"}));
-
+    auto color_only_frag = sal::File_reader::read_file("../res/shaders/color_lighting_frag.glsl");
     auto instanced_vert = sal::File_reader::read_file("../res/shaders/instanced_vert.glsl");
-    m_shaders.push_back(sal::Shader_loader::from_sources(
-        instanced_vert, f2_str,
-        {"in_uv", "in_normal", "in_pos", "in_color", "in_instance_model_matrix"},
-        {"material", "frame"}));
+    m_shaders.push_back(sal::Shader_loader::from_sources(instanced_vert, color_only_frag,
+                                                         {{"in_uv"},
+                                                          {"in_normal"},
+                                                          {"in_pos"},
+                                                          {"in_color"},
+                                                          {"in_instance_model_matrix", 4},
+                                                          {"in_instance_color"}},
+                                                         {"material", "frame"}));
 
     std::uint64_t const base_flags = aiProcess_Triangulate | aiProcess_GenNormals
                                      | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
 
-    std::string const model_file{"../res/models/cube/cube.obj"};
-    float const scale_factor{0.5f};
-    m_models.push_back(
-        sal::Model_loader::from_file(model_file, scale_factor, base_flags | aiProcess_FlipUVs));
+    float const scale_factor{1.0f};
 
     sal::Texture cube_tex{sal::Texture_loader::from_file("../res/models/case/j-cover.png",
                                                          sal::Texture::Type::diffuse)};
@@ -52,23 +47,41 @@ sal::Application::Exit_code Conquest::run() noexcept
     auto text_vert = sal::File_reader::read_file("../res/shaders/basic_text_vert.glsl");
     auto text_frag = sal::File_reader::read_file("../res/shaders/basic_text_frag.glsl");
     m_shaders.push_back(sal::Shader_loader::from_sources(
-        text_vert, text_frag, {"in_uv", "in_normal", "in_pos"}, {"atlas", "color"}));
+        text_vert, text_frag, {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}}, {"atlas"}));
     m_fonts.emplace_back(m_font_loader.create("../res/fonts/calibri.ttf"));
 
+    static constexpr std::size_t board_h{30};
+    static constexpr std::size_t board_w{40};
+
+    m_games.emplace_back(board_w, board_h, 6, 2);
+
+    for (std::size_t y{0}; y < board_h; y++) {
+        for (std::size_t x{0}; x < board_w; x++) {
+            auto ent = m_registry.create();
+            m_registry.emplace<sal::Instanced>(ent, m_models.front(),
+                                               glm::vec4{1.f, 1.f, 1.f, 0.5f});
+            m_registry.emplace<sal::Shader_program>(ent, m_shaders.at(1));
+            m_registry.emplace<Cell_position>(ent, x, y);
+            sal::Transform t{glm::vec3{x, y, 0}, glm::vec3{0.f}, glm::vec3{1.f}};
+            m_registry.emplace<sal::Transform>(ent, t);
+        }
+    }
 
     auto entity2 = m_registry.create();
-    sal::Text text{"Hello, world", m_fonts.front(), glm::vec2{0}, glm::vec2{0.5f},
-                   glm::vec4{0.8f, 0.8f, 0.8f, 0.5f}};
+    sal::Text text{"conquest3d", m_fonts.front(), glm::vec2{0}, glm::vec2{0.5f},
+                   glm::vec4{1.f, 1.f, 1.f, 1.f}};
     m_registry.emplace<sal::Text>(entity2, text);
-    m_registry.emplace<sal::Shader_program>(entity2, m_shaders.at(4));
-    sal::Transform t{glm::vec3{0.f}, glm::vec3{0.f}, glm::vec3{1.f}};
+    m_registry.emplace<sal::Shader_program>(entity2, m_shaders.at(2));
+    sal::Transform t{glm::vec3{20, -2, 0}, glm::vec3{0.f}, glm::vec3{0.1f}};
     m_registry.emplace<sal::Transform>(entity2, t);
 
     m_rand_engine.seed(time(NULL));
 
     entt::entity camera{m_registry.create()};
-    m_registry.emplace<sal::Transform>(camera, glm::vec3{0.0f}, glm::vec3{0.0f}, glm::vec3{1.0f});
-    m_registry.emplace<sal::Camera>(camera);
+    m_registry.emplace<sal::Transform>(camera,
+                                       glm::vec3{board_w / 2.f - 0.5f, board_h / 2.f - 0.5f, 50.f},
+                                       glm::vec3{0.0f}, glm::vec3{1.0f});
+    m_registry.emplace<sal::Camera>(camera, glm::vec3{0.f, 1.f, 0.f}, -90.f, 0.f);
 
 
     m_t_start = std::chrono::high_resolution_clock::now();
@@ -101,9 +114,42 @@ void Conquest::run_user_tasks() noexcept
 
     glEnable(GL_DEPTH_TEST);
 
+    glEnable(GL_CULL_FACE);
+    // Set culling mode to back faces
+    glCullFace(GL_BACK);
+    // Set winding order to counter-clockwise (default)
+    glFrontFace(GL_CCW);
+
+    if (m_should_restart_sim) {
+        m_should_restart_sim = false;
+        m_games.front().reset_board();
+    }
+
+
+    auto const& cells = m_games.front().cells();
+
+    auto cell_view = m_registry.view<sal::Transform, sal::Instanced, Cell_position>();
+    for (auto [entity, transform, instance, cell_pos] : cell_view.each()) {
+        instance.color = m_cell_colors.at(cells.at(cell_pos.y).at(cell_pos.x).color);
+    }
+
+    std::string camera_pos_text;
+    auto camera_view = m_registry.view<sal::Transform, sal::Camera>();
+    for (auto [entity, transform, camera] : camera_view.each()) {
+        auto c_of_m = transform.position;
+        std::string x{std::to_string(c_of_m.x)};
+        std::string y{std::to_string(c_of_m.y)};
+        std::string z{std::to_string(c_of_m.z)};
+        x.resize(5);
+        y.resize(5);
+        z.resize(5);
+        std::string a{x + ", " + y + ", " + z};
+        camera_pos_text = a;
+    }
+
     auto text_view = m_registry.view<sal::Transform, sal::Text>();
     for (auto [entity, transform, text] : text_view.each()) {
-        transform.rotation += glm::vec3{1.f, 1.f, 0.f};
+        text.set_content(camera_pos_text);
     }
 }
 
@@ -172,8 +218,8 @@ void Conquest::handle_input() noexcept
 
     auto camera_view = m_registry.view<sal::Transform, sal::Camera>();
     for (auto [entity, transform, camera] : camera_view.each()) {
-        m_camera_controller(x_offset, y_offset, m_delta_time, m_window, m_input_manager, camera,
-                            transform);
+        m_camera_controller(x_offset, y_offset, m_delta_time * 0.1f, m_window, m_input_manager,
+                            camera, transform);
     }
     if (m_input_manager.key(GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose(m_window.get(), true);
@@ -191,6 +237,14 @@ void Conquest::handle_input() noexcept
     }
     if (m_input_manager.key_now(GLFW_KEY_R)) {
         m_should_restart_sim = true;
+    }
+
+    std::uniform_int_distribution<std::size_t> rcolor{0, m_cell_colors.size() - 1};
+    if (m_input_manager.key_now(GLFW_KEY_1)) {
+        m_games.front().execute_turn(0, rcolor(m_rand_engine));
+    }
+    if (m_input_manager.key_now(GLFW_KEY_2)) {
+        m_games.front().execute_turn(1, rcolor(m_rand_engine));
     }
 }
 

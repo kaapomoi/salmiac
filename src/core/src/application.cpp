@@ -164,7 +164,12 @@ void Application::render_instanced() noexcept
 
     set_user_uniforms_before_render();
 
-    std::vector<glm::mat4> model_matrices;
+    struct Instanced_data {
+        glm::mat4 model_mat;
+        glm::vec4 color;
+    };
+
+    std::vector<Instanced_data> instanced_data;
     auto render_view = m_registry.view<Transform, Instanced, Shader_program>();
     for (auto [entity, transform, instanced, shader] : render_view.each()) {
         glm::vec3 model_position{transform.position};
@@ -180,35 +185,52 @@ void Application::render_instanced() noexcept
         model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
         model_mat = glm::scale(model_mat, model_scale);
 
-        model_matrices.push_back(model_mat);
+        instanced_data.push_back({model_mat, instanced.color});
+    }
+
+    if (instanced_data.empty()) {
+        std::chrono::high_resolution_clock::time_point const now{
+            std::chrono::high_resolution_clock::now()};
+
+        float const time_diff =
+            std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
+        sal::Log::info("render_time_instanced: {}", time_diff);
+        return;
     }
 
     std::uint32_t instanced_vbo;
     glGenBuffers(1, &instanced_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, instanced_vbo);
-    glBufferData(GL_ARRAY_BUFFER, model_matrices.size() * sizeof(glm::mat4), &model_matrices[0],
-                 GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, instanced_data.size() * sizeof(Instanced_data),
+                 &instanced_data[0], GL_DYNAMIC_DRAW);
 
     for (auto [e, t, i, s] : render_view.each()) {
         for (auto mesh : i.model.meshes) {
             glBindVertexArray(mesh.vao);
 
+            /// Model matrix glm::mat4
             glEnableVertexAttribArray(4);
-            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4), (void*)0);
+            glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(Instanced_data), (void*)0);
             glEnableVertexAttribArray(5);
-            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+            glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(Instanced_data),
                                   (void*)(sizeof(glm::vec4)));
             glEnableVertexAttribArray(6);
-            glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+            glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Instanced_data),
                                   (void*)(2 * sizeof(glm::vec4)));
             glEnableVertexAttribArray(7);
-            glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(glm::mat4),
+            glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(Instanced_data),
                                   (void*)(3 * sizeof(glm::vec4)));
+
+            /// Color glm::vec4
+            glEnableVertexAttribArray(8);
+            glVertexAttribPointer(8, 4, GL_FLOAT, GL_FALSE, sizeof(Instanced_data),
+                                  (void*)(4 * sizeof(glm::vec4)));
 
             glVertexAttribDivisor(4, 1);
             glVertexAttribDivisor(5, 1);
             glVertexAttribDivisor(6, 1);
             glVertexAttribDivisor(7, 1);
+            glVertexAttribDivisor(8, 1);
 
             glBindVertexArray(0);
         }
@@ -235,7 +257,7 @@ void Application::render_instanced() noexcept
             // draw mesh
             glBindVertexArray(mesh.vao);
             glDrawElementsInstanced(GL_TRIANGLES, mesh.indices.size(), GL_UNSIGNED_INT, nullptr,
-                                    model_matrices.size());
+                                    instanced_data.size());
             glBindVertexArray(0);
 
 

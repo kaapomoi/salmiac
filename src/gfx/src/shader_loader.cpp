@@ -8,10 +8,11 @@
 
 namespace sal {
 
-Shader_program Shader_loader::from_sources(std::string const& vert_source,
-                                           std::string const& frag_source,
-                                           std::initializer_list<std::string> const attrib_list,
-                                           std::vector<std::string> const& uniform_list) noexcept
+Shader_program
+Shader_loader::from_sources(std::string const& vert_source,
+                            std::string const& frag_source,
+                            std::initializer_list<Shader_program::Attribute> const attrib_list,
+                            std::vector<std::string> const& uniform_list) noexcept
 {
     Shader_program shader;
 
@@ -58,10 +59,11 @@ void Shader_loader::compile_shader(Shader_program& shader,
     }
 }
 
-void Shader_loader::add_attrib(Shader_program& shader, std::string const& attrib_name) noexcept
+void Shader_loader::add_attrib(Shader_program& shader,
+                               Shader_program::Attribute const& attrib) noexcept
 {
-    glBindAttribLocation(shader.program_id, shader.attrib_count, attrib_name.c_str());
-    shader.attrib_count++;
+    glBindAttribLocation(shader.program_id, shader.attrib_count, attrib.name.c_str());
+    shader.attrib_count += attrib.size;
 }
 
 void Shader_loader::link_shaders(Shader_program& shader) noexcept

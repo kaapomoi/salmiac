@@ -73,10 +73,6 @@ void Text::update_character_quads() noexcept
 
         // Skip glyphs without pixels
         // TODO: Check if this causes the issue with spaces.
-        if (!w || !h) {
-            continue;
-        }
-
 
         static glm::vec3 const normal{0.f, 0.f, -1.f};
 
@@ -98,7 +94,7 @@ void Text::update_character_quads() noexcept
                   normal, glm::vec3{x2 + w, -y2 - h, 0}, m_color};
 
         quad.vertices = {v0, v1, v2, v3};
-        quad.indices = {0, 1, 2, 1, 2, 3};
+        quad.indices = {0, 2, 1, 1, 2, 3};
         quad.textures = {Texture{m_font.atlas.id, m_font.atlas.width, m_font.atlas.height}};
 
         if (!quad.initialized) {

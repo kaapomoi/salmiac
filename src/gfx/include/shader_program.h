@@ -20,6 +20,11 @@
 namespace sal {
 
 struct Shader_program {
+    struct Attribute {
+        std::string name;
+        std::size_t size{1};
+    };
+
     GLuint program_id{0};
     std::int32_t attrib_count{0};
 

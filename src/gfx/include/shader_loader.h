@@ -13,17 +13,19 @@ namespace sal {
 
 class Shader_loader {
 public:
-    static Shader_program from_sources(std::string const& vert_source,
-                                       std::string const& frag_source,
-                                       std::initializer_list<std::string> const attrib_list,
-                                       std::vector<std::string> const& uniform_list) noexcept;
+    static Shader_program
+    from_sources(std::string const& vert_source,
+                 std::string const& frag_source,
+                 std::initializer_list<Shader_program::Attribute> const attrib_list,
+                 std::vector<std::string> const& uniform_list) noexcept;
 
 private:
     static void compile_shader(Shader_program& shader,
                                std::string const& file,
                                GLuint& shader_id) noexcept;
 
-    static void add_attrib(Shader_program& shader, std::string const& attrib_name) noexcept;
+    static void add_attrib(Shader_program& shader,
+                           Shader_program::Attribute const& attrib_name) noexcept;
 
     static void link_shaders(Shader_program& shader) noexcept;
 

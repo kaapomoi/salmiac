@@ -19,21 +19,27 @@ sal::Application::Exit_code N_body_sim::run() noexcept
     auto f_str = sal::File_reader::read_file("../res/shaders/bad_lighting_frag.glsl");
 
     m_shaders.push_back(sal::Shader_loader::from_sources(
-        v_str, f_str, {"in_uv", "in_normal", "in_pos", "in_color"}, {"material"}));
+        v_str, f_str, {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}}, {"material"}));
 
     auto basic_lighting_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
     m_shaders.push_back(sal::Shader_loader::from_sources(
-        v_str, basic_lighting_str, {"in_uv", "in_normal", "in_pos", "in_color"}, {"material"}));
+        v_str, basic_lighting_str, {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}},
+        {"material"}));
 
     auto f2_str = sal::File_reader::read_file("../res/shaders/liquid_frag.glsl");
     m_shaders.push_back(sal::Shader_loader::from_sources(
-        v_str, f2_str, {"in_uv", "in_normal", "in_pos", "in_color"}, {"material", "frame"}));
+        v_str, f2_str, {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}},
+        {"material", "frame"}));
 
     auto instanced_vert = sal::File_reader::read_file("../res/shaders/instanced_vert.glsl");
-    m_shaders.push_back(sal::Shader_loader::from_sources(
-        instanced_vert, f2_str,
-        {"in_uv", "in_normal", "in_pos", "in_color", "in_instance_model_matrix"},
-        {"material", "frame"}));
+    m_shaders.push_back(sal::Shader_loader::from_sources(instanced_vert, f2_str,
+                                                         {{"in_uv"},
+                                                          {"in_normal"},
+                                                          {"in_pos"},
+                                                          {"in_color"},
+                                                          {"in_instance_model_matrix", 4},
+                                                          {"in_instance_color"}},
+                                                         {"material", "frame"}));
 
     std::uint64_t const base_flags = aiProcess_Triangulate | aiProcess_GenNormals
                                      | aiProcess_OptimizeGraph | aiProcess_OptimizeMeshes;
@@ -52,7 +58,8 @@ sal::Application::Exit_code N_body_sim::run() noexcept
     auto text_vert = sal::File_reader::read_file("../res/shaders/basic_text_vert.glsl");
     auto text_frag = sal::File_reader::read_file("../res/shaders/basic_text_frag.glsl");
     m_shaders.push_back(sal::Shader_loader::from_sources(
-        text_vert, text_frag, {"in_uv", "in_normal", "in_pos"}, {"atlas", "color"}));
+        text_vert, text_frag, {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}},
+        {"atlas", "color"}));
     m_fonts.emplace_back(m_font_loader.create("../res/fonts/calibri.ttf"));
 
 
