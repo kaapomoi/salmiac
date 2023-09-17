@@ -6,6 +6,7 @@
 #define CONQUEST_H
 
 #include "application.h"
+#include "artisan.h"
 #include "camera_controller.h"
 #include "game.h"
 #include "primitives.h"
@@ -42,6 +43,8 @@ private:
     std::vector<glm::vec4> m_cell_colors{{0.8f, 0.2f, 0.2f, 1.f},  {0.1f, 0.8f, 0.15f, 1.f},
                                          {0.23f, 0.1f, 0.8f, 1.f}, {0.8f, 0.75f, 0.11f, 1.f},
                                          {1.f, 0.25f, 0.87f, 1.f}, {0.05f, 0.78f, .78f, 1.f}};
+
+    std::vector<Artisan> m_artisans;
 };
 
 #endif

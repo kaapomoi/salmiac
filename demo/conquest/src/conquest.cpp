@@ -54,6 +54,8 @@ sal::Application::Exit_code Conquest::run() noexcept
     static constexpr std::size_t board_w{40};
 
     m_games.emplace_back(board_w, board_h, 6, 2);
+    m_artisans.emplace_back();
+    m_artisans.emplace_back();
 
     for (std::size_t y{0}; y < board_h; y++) {
         for (std::size_t x{0}; x < board_w; x++) {
@@ -125,6 +127,11 @@ void Conquest::run_user_tasks() noexcept
         m_games.front().reset_board();
     }
 
+
+    for (std::size_t i{0}; i < m_artisans.size(); i++) {
+        auto move = m_artisans.at(i).play(m_games.front().available_moves());
+        m_games.front().execute_turn(i, move);
+    }
 
     auto const& cells = m_games.front().cells();
 

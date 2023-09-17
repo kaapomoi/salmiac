@@ -31,6 +31,8 @@ public:
 
     std::vector<std::vector<Cell>> const& cells() noexcept;
 
+    std::vector<std::size_t> available_moves() noexcept;
+
     void reset_board() noexcept;
 
     bool execute_turn(std::size_t const player_index, std::size_t const color_index) noexcept;

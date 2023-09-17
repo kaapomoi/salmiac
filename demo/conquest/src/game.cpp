@@ -4,6 +4,8 @@
 
 #include "game.h"
 
+#include <algorithm>
+#include <numeric>
 #include <queue>
 
 Game::Game(std::size_t const board_w,
@@ -23,6 +25,18 @@ Game::Game(std::size_t const board_w,
 std::vector<std::vector<Cell>> const& Game::cells() noexcept
 {
     return m_cells;
+}
+
+std::vector<std::size_t> Game::available_moves() noexcept
+{
+    std::vector<size_t> available_moves;
+    available_moves.resize(m_n_colors);
+    std::iota(available_moves.begin(), available_moves.end(), 0);
+
+    for (auto const& player : m_players) {
+        std::erase(available_moves, player.current_color);
+    }
+    return available_moves;
 }
 
 void Game::initialize_board() noexcept
