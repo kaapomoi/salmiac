@@ -39,9 +39,9 @@ private:
     float m_sim_timescale{10.f};
     bool m_should_restart_sim{false};
     std::vector<Game> m_games;
-    std::vector<glm::vec4> m_cell_colors{{1.f, 0.f, 0.f, 1.f}, {0.f, 1.f, 0.f, 1.f},
-                                         {0.f, 0.f, 1.f, 1.f}, {1.f, 1.f, 0.f, 1.f},
-                                         {1.f, 0.f, 1.f, 1.f}, {0.f, 1.f, 1.f, 1.f}};
+    std::vector<glm::vec4> m_cell_colors{{0.8f, 0.2f, 0.2f, 1.f},  {0.1f, 0.8f, 0.15f, 1.f},
+                                         {0.23f, 0.1f, 0.8f, 1.f}, {0.8f, 0.75f, 0.11f, 1.f},
+                                         {1.f, 0.25f, 0.87f, 1.f}, {0.05f, 0.78f, .78f, 1.f}};
 };
 
 #endif

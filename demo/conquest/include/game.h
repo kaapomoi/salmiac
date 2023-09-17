@@ -35,15 +35,17 @@ public:
 
     bool execute_turn(std::size_t const player_index, std::size_t const color_index) noexcept;
 
+    template<typename F>
+    std::size_t bfs(std::size_t const player_index,
+                    std::size_t const color_index,
+                    F&& callback) noexcept;
+
 private:
     void initialize_board() noexcept;
 
     void flood_fill_to_color(glm::vec2 const pos,
                              size_t const owner,
                              size_t const new_color) noexcept;
-
-    std::size_t color_change_bfs(std::size_t const player_index,
-                                 std::size_t const color_index) noexcept;
 
 
     bool in_bounds(glm::vec2 const& pos) noexcept;

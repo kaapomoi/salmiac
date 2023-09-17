@@ -108,7 +108,8 @@ bool Game::execute_turn(std::size_t const player_index, std::size_t const color_
 
     /// Update the board state by running a bfs algorithm and
     /// changing the connected cells to `color_index`
-    static_cast<void>(color_change_bfs(player_index, color_index));
+    static_cast<void>(bfs(player_index, color_index,
+                          [player_index](Cell& cell) -> void { cell.owner = player_index; }));
 
     m_turn++;
     m_turn = m_turn % m_n_players;
@@ -137,8 +138,10 @@ void Game::flood_fill_to_color(glm::vec2 const pos,
     flood_fill_to_color(pos + glm::vec2{0, -1}, owner, new_color);
 }
 
-std::size_t Game::color_change_bfs(std::size_t const player_index,
-                                   std::size_t const color_index) noexcept
+template<typename F>
+std::size_t Game::bfs(std::size_t const player_index,
+                      std::size_t const color_index,
+                      F&& callback) noexcept
 {
     std::size_t num_visited{0};
     std::size_t const old_color{m_players.at(player_index).current_color};
@@ -162,7 +165,7 @@ std::size_t Game::color_change_bfs(std::size_t const player_index,
     while (!search_queue.empty()) {
         glm::vec2 const pos = search_queue.front();
 
-        cell_at(pos).owner = player_index;
+        callback(cell_at(pos));
 
         num_visited++;
         search_queue.pop();

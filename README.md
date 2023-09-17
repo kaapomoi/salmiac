@@ -3,7 +3,7 @@
 3D Game engine + demos written in C++.
 
 ### Demos
-1. [n-body simulation](demo/n_body_sim)
+1. [n-body simulation](demo/nbody)
     - Instanced rendering
     - Barnes-Hut algorithm
 2. [conquest](demo/conquest)
