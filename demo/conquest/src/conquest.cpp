@@ -50,22 +50,19 @@ sal::Application::Exit_code Conquest::run() noexcept
         text_vert, text_frag, {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}}, {"atlas"}));
     m_fonts.emplace_back(m_font_loader.create("../res/fonts/calibri.ttf"));
 
-    static constexpr std::size_t board_h{30};
-    static constexpr std::size_t board_w{40};
-
-    m_games.emplace_back(board_w, board_h, 6, 2);
-    m_artisans.emplace_back();
-    m_artisans.emplace_back();
-
-    for (std::size_t y{0}; y < board_h; y++) {
-        for (std::size_t x{0}; x < board_w; x++) {
-            auto ent = m_registry.create();
-            m_registry.emplace<sal::Instanced>(ent, m_models.front(),
-                                               glm::vec4{1.f, 1.f, 1.f, 0.5f});
-            m_registry.emplace<sal::Shader_program>(ent, m_shaders.at(1));
-            m_registry.emplace<Cell_position>(ent, x, y);
-            sal::Transform t{glm::vec3{x, y, 0}, glm::vec3{0.f}, glm::vec3{1.f}};
-            m_registry.emplace<sal::Transform>(ent, t);
+    for (std::size_t g{0}; g < n_games; g++) {
+        for (std::size_t y{0}; y < board_h; y++) {
+            for (std::size_t x{0}; x < board_w; x++) {
+                auto ent = m_registry.create();
+                m_registry.emplace<sal::Instanced>(ent, m_models.front(),
+                                                   glm::vec4{1.f, 1.f, 1.f, 0.5f});
+                m_registry.emplace<sal::Shader_program>(ent, m_shaders.at(1));
+                m_registry.emplace<Cell_position>(ent, x, y, g);
+                sal::Transform t{
+                    glm::vec3{x + board_w * 1.2f * (g % 10), y + board_h * 1.2f * (g / 10), 0},
+                    glm::vec3{0.f}, glm::vec3{1.f}};
+                m_registry.emplace<sal::Transform>(ent, t);
+            }
         }
     }
 
@@ -92,6 +89,8 @@ sal::Application::Exit_code Conquest::run() noexcept
     while (!m_suggest_close) {
         update();
     }
+
+    m_orchestrator.stop();
 
     return Exit_code::ok;
 }
@@ -124,20 +123,20 @@ void Conquest::run_user_tasks() noexcept
 
     if (m_should_restart_sim) {
         m_should_restart_sim = false;
-        m_games.front().reset_board();
+        m_orchestrator.restart();
     }
 
+    m_orchestrator.play_one_game_each();
 
-    for (std::size_t i{0}; i < m_artisans.size(); i++) {
-        auto move = m_artisans.at(i).play(m_games.front().available_moves());
-        m_games.front().execute_turn(i, move);
-    }
+    auto const cells = m_orchestrator.cells();
 
-    auto const& cells = m_games.front().cells();
-
+    /// TODO: Only update the colors that have changed.
+    /// Right now every game gives its cells over, but that is bad and slow.
+    /// Find a better way.
     auto cell_view = m_registry.view<sal::Transform, sal::Instanced, Cell_position>();
     for (auto [entity, transform, instance, cell_pos] : cell_view.each()) {
-        instance.color = m_cell_colors.at(cells.at(cell_pos.y).at(cell_pos.x).color);
+        instance.color =
+            m_cell_colors.at(cells.at(cell_pos.game_id).at(cell_pos.y).at(cell_pos.x).color);
     }
 
     std::string camera_pos_text;
@@ -225,8 +224,8 @@ void Conquest::handle_input() noexcept
 
     auto camera_view = m_registry.view<sal::Transform, sal::Camera>();
     for (auto [entity, transform, camera] : camera_view.each()) {
-        m_camera_controller(x_offset, y_offset, m_delta_time * 0.1f, m_window, m_input_manager,
-                            camera, transform);
+        m_camera_controller(x_offset, y_offset, m_delta_time, m_window, m_input_manager, camera,
+                            transform);
     }
     if (m_input_manager.key(GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose(m_window.get(), true);
@@ -244,14 +243,6 @@ void Conquest::handle_input() noexcept
     }
     if (m_input_manager.key_now(GLFW_KEY_R)) {
         m_should_restart_sim = true;
-    }
-
-    std::uniform_int_distribution<std::size_t> rcolor{0, m_cell_colors.size() - 1};
-    if (m_input_manager.key_now(GLFW_KEY_1)) {
-        m_games.front().execute_turn(0, rcolor(m_rand_engine));
-    }
-    if (m_input_manager.key_now(GLFW_KEY_2)) {
-        m_games.front().execute_turn(1, rcolor(m_rand_engine));
     }
 }
 

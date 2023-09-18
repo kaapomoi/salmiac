@@ -10,6 +10,8 @@
 struct Cell_position {
     std::size_t x{0};
     std::size_t y{0};
+
+    std::size_t game_id{0};
 };
 
 #endif //SALMIAC_CELL_H

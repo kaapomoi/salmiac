@@ -19,8 +19,8 @@ void GLAPIENTRY MessageCallback(GLenum source,
                                 const GLchar* message,
                                 const void* userParam)
 {
-    fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-            (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
+    //fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+    //       (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
 }
 
 
@@ -154,7 +154,7 @@ void Application::render_models() noexcept
 
     float const time_diff =
         std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-    sal::Log::info("render_time_models: {}", time_diff);
+    //sal::Log::info("render_time_models: {}", time_diff);
 }
 
 void Application::render_instanced() noexcept
@@ -194,7 +194,7 @@ void Application::render_instanced() noexcept
 
         float const time_diff =
             std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-        sal::Log::info("render_time_instanced: {}", time_diff);
+        //sal::Log::info("render_time_instanced: {}", time_diff);
         return;
     }
 
@@ -285,7 +285,7 @@ void Application::render_instanced() noexcept
 
     float const time_diff =
         std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-    sal::Log::info("render_time_instanced: {}", time_diff);
+    //sal::Log::info("render_time_instanced: {}", time_diff);
 }
 
 void Application::render_text() noexcept
@@ -350,7 +350,7 @@ void Application::render_text() noexcept
 
     float const time_diff =
         std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-    sal::Log::info("render_time_text: {}", time_diff);
+    //sal::Log::info("render_time_text: {}", time_diff);
 }
 
 void Application::run_engine_tasks() noexcept

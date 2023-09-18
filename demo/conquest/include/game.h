@@ -8,6 +8,7 @@
 #include "application.h"
 #include "cell_position.h"
 
+#include <mutex>
 #include <random>
 
 struct Cell {
@@ -28,6 +29,7 @@ public:
          std::size_t const board_h,
          std::size_t const n_colors,
          std::size_t const n_players) noexcept;
+    ~Game() noexcept = default;
 
     std::vector<std::vector<Cell>> const& cells() noexcept;
 
@@ -37,10 +39,16 @@ public:
 
     bool execute_turn(std::size_t const player_index, std::size_t const color_index) noexcept;
 
+    bool done() noexcept;
+
     template<typename F>
     std::size_t bfs(std::size_t const player_index,
                     std::size_t const color_index,
                     F&& callback) noexcept;
+
+    Game(const Game& other) = delete;
+
+    Game& operator=(const Game& other) = delete;
 
 private:
     void initialize_board() noexcept;
@@ -64,6 +72,7 @@ private:
         }
     }
 
+    std::mutex m_cell_mutex;
     std::vector<std::vector<Cell>> m_cells;
     std::mt19937 m_rand_engine;
 

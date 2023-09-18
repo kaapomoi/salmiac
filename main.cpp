@@ -25,15 +25,16 @@ void task()
 
 int main()
 {
-    // Conquest app;
-    // //N_body_sim app;
-    // app.start();
+    Conquest app;
+    //N_body_sim app;
+    app.start();
 
-    // app.run();
+    app.run();
 
-    // app.cleanup();
+    app.cleanup();
 
 
+    /*
     std::cout << "Creating a thread pool with " << std::thread::hardware_concurrency() << " threads"
               << std::endl;
     sal::Thread_pool<std::function<void()>> pool{8};
@@ -42,6 +43,7 @@ int main()
         pool.insert(task);
 
     std::this_thread::sleep_for(std::chrono::seconds{1});
+    */
 
     return 0;
 }

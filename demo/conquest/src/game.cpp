@@ -22,8 +22,14 @@ Game::Game(std::size_t const board_w,
     initialize_board();
 }
 
+//Game::~Game() noexcept
+//{
+//    //std::lock_guard<std::mutex> lck(m_cell_mutex);
+//}
+
 std::vector<std::vector<Cell>> const& Game::cells() noexcept
 {
+    std::lock_guard<std::mutex> lck{m_cell_mutex};
     return m_cells;
 }
 
@@ -39,9 +45,20 @@ std::vector<std::size_t> Game::available_moves() noexcept
     return available_moves;
 }
 
+bool Game::done() noexcept
+{
+    std::lock_guard<std::mutex> lck{m_cell_mutex};
+    return std::reduce(m_players.begin(), m_players.end(), 0,
+                       [](std::size_t sum, Player const& p) { return sum + p.owned_cells; })
+           >= (m_board_width * m_board_height);
+}
+
 void Game::initialize_board() noexcept
 {
+    std::lock_guard<std::mutex> lck{m_cell_mutex};
+
     m_cells.clear();
+    m_players.clear();
 
     for (std::size_t i{0}; i < m_n_players; i++) {
         m_players.emplace_back(Player{3, i, i});
@@ -114,16 +131,19 @@ bool Game::execute_turn(std::size_t const player_index, std::size_t const color_
         }
     }
 
-    // Transfer the ownership of the new color
-    m_players.at(player_index).current_color = color_index;
+    {
+        std::lock_guard<std::mutex> lck{m_cell_mutex};
+        // Transfer the ownership of the new color
+        m_players.at(player_index).current_color = color_index;
 
-    /// Flood fill to the new color
-    flood_fill_to_color(m_starting_positions.at(player_index), player_index, color_index);
-
-    /// Update the board state by running a bfs algorithm and
-    /// changing the connected cells to `color_index`
-    static_cast<void>(bfs(player_index, color_index,
-                          [player_index](Cell& cell) -> void { cell.owner = player_index; }));
+        /// Flood fill to the new color
+        flood_fill_to_color(m_starting_positions.at(player_index), player_index, color_index);
+        /// Update the board state by running a bfs algorithm and
+        /// changing the connected cells to `color_index`
+        m_players.at(player_index).owned_cells =
+            bfs(player_index, color_index,
+                [player_index](Cell& cell) -> void { cell.owner = player_index; });
+    }
 
     m_turn++;
     m_turn = m_turn % m_n_players;
@@ -152,19 +172,22 @@ void Game::flood_fill_to_color(glm::vec2 const pos,
     flood_fill_to_color(pos + glm::vec2{0, -1}, owner, new_color);
 }
 
+
+// TODO: Fix check_pos. It does not visit cells correctly.
 template<typename F>
 std::size_t Game::bfs(std::size_t const player_index,
                       std::size_t const color_index,
                       F&& callback) noexcept
 {
-    std::size_t num_visited{0};
+    std::size_t num_visited{1};
     std::size_t const old_color{m_players.at(player_index).current_color};
 
-    std::array<std::array<bool, 100>, 100> visited{};
+    /// TODO: Make a better visited array.
+    std::array<std::array<bool, 50>, 50> visited{};
 
     std::queue<glm::vec2> search_queue{{m_starting_positions.at(player_index)}};
 
-    auto check_pos = [&visited, this, &old_color, &player_index, &color_index,
+    auto check_pos = [&visited, this, &color_index, &num_visited,
                       &search_queue](glm::vec2 const pos) -> void {
         if (in_bounds(pos) && !visited.at(pos.y).at(pos.x) && cell_at(pos).color == color_index) {
             search_queue.push(pos);
@@ -174,10 +197,10 @@ std::size_t Game::bfs(std::size_t const player_index,
 
     while (!search_queue.empty()) {
         glm::vec2 const pos = search_queue.front();
+        num_visited++;
 
         callback(cell_at(pos));
 
-        num_visited++;
         search_queue.pop();
 
         check_pos(pos + glm::vec2{0, 1});
