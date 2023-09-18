@@ -166,11 +166,7 @@ std::size_t Game::bfs(std::size_t const player_index,
 
     auto check_pos = [&visited, this, &old_color, &player_index, &color_index,
                       &search_queue](glm::vec2 const pos) -> void {
-        if (in_bounds(pos)
-            && visited.at(pos.y).at(pos.x) == false
-            //&& ((cell_at(pos).color == old_color && cell_at(pos).owner == player_index)
-            && cell_at(pos).color == color_index) {
-
+        if (in_bounds(pos) && !visited.at(pos.y).at(pos.x) && cell_at(pos).color == color_index) {
             search_queue.push(pos);
             visited.at(pos.y).at(pos.x) = true;
         }
