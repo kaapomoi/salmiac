@@ -47,6 +47,7 @@ Text::Text(std::string const& content,
     update_character_quads();
 }
 
+/// TODO: Make Text properly centered.
 void Text::update_character_quads() noexcept
 {
     float x{m_pos.x};
@@ -70,9 +71,6 @@ void Text::update_character_quads() noexcept
         y += m_font.character_info.at(c).advance_y * sy;
 
         Mesh& quad{m_char_quads.at(index++)};
-
-        // Skip glyphs without pixels
-        // TODO: Check if this causes the issue with spaces.
 
         static glm::vec3 const normal{0.f, 0.f, -1.f};
 

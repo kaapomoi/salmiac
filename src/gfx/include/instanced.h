@@ -12,6 +12,7 @@ namespace sal {
 struct Instanced {
     Model& model;
     glm::vec4 color{1.f};
+    glm::mat4 model_matrix{1.0f};
 };
 
 } // namespace sal

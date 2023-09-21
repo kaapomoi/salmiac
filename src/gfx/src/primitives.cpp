@@ -8,7 +8,8 @@
 
 namespace sal {
 
-Mesh Primitive_factory::cube(const glm::vec3 dims, std::vector<Texture> const textures) noexcept
+Mesh Primitive_factory::cube(const glm::vec3 dimensions,
+                             std::vector<Texture> const textures) noexcept
 {
     Mesh mesh;
 
@@ -42,7 +43,7 @@ Mesh Primitive_factory::cube(const glm::vec3 dims, std::vector<Texture> const te
                     12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23};
 
     for (auto& vert : mesh.vertices) {
-        vert.position *= dims;
+        vert.position *= dimensions;
     }
     mesh.textures = textures;
 
@@ -50,5 +51,29 @@ Mesh Primitive_factory::cube(const glm::vec3 dims, std::vector<Texture> const te
 
     return mesh;
 }
+
+
+Mesh Primitive_factory::plane(glm::vec3 const dimensions,
+                              std::vector<Texture> const textures) noexcept
+{
+    Mesh mesh;
+
+    mesh.vertices = {Vertex{glm::vec2(0, 0), glm::vec3(-0, 1, -0), glm::vec3(-0.5, -0.5, 0)},
+                     Vertex{glm::vec2(0, 1), glm::vec3(-0, 1, -0), glm::vec3(-0.5, 0.5, -0)},
+                     Vertex{glm::vec2(1, 0), glm::vec3(-0, 1, -0), glm::vec3(0.5, -0.5, 0)},
+                     Vertex{glm::vec2(1, 1), glm::vec3(-0, 1, -0), glm::vec3(0.5, 0.5, 0)}};
+
+    mesh.indices = {0, 2, 3, 0, 3, 1};
+
+    for (auto& vert : mesh.vertices) {
+        vert.position *= dimensions;
+    }
+    mesh.textures = textures;
+
+    Mesh_binder::setup(mesh);
+
+    return mesh;
+}
+
 
 } // namespace sal

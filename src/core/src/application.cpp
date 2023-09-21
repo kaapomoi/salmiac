@@ -75,7 +75,15 @@ void Application::update() noexcept
     run_engine_tasks();
 
     /// User does something with the updated inputs
+    auto t_user_task_start = std::chrono::high_resolution_clock::now();
     run_user_tasks();
+    std::chrono::high_resolution_clock::time_point const now{
+        std::chrono::high_resolution_clock::now()};
+
+    float const time_diff =
+        std::chrono::duration_cast<std::chrono::duration<float>>(now - t_user_task_start).count();
+    sal::Log::info("run_user_tasks time: {}", time_diff);
+
 
     render_models();
     render_instanced();
@@ -104,14 +112,18 @@ void Application::render_models() noexcept
 
         shader.use();
 
-        glm::mat4 model_mat{1.0f};
+        /// TODO: Cache these
+        glm::mat4& model_mat{model.model_matrix};
 
-        model_mat = glm::translate(model_mat, model_position);
+        if (transform.dirty) {
+            model_mat = glm::translate(model_mat, model_position);
 
-        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
-        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
-        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
-        model_mat = glm::scale(model_mat, model_scale);
+            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
+            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
+            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
+            model_mat = glm::scale(model_mat, model_scale);
+            transform.dirty = false;
+        }
 
         set_render_model_uniforms(shader);
 
@@ -154,7 +166,7 @@ void Application::render_models() noexcept
 
     float const time_diff =
         std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-    //sal::Log::info("render_time_models: {}", time_diff);
+    sal::Log::info("render_time_models: {}", time_diff);
 }
 
 void Application::render_instanced() noexcept
@@ -169,6 +181,7 @@ void Application::render_instanced() noexcept
         glm::vec4 color;
     };
 
+    /// TODO: Don't create instanced_data every time. Cache it somewhere.
     std::vector<Instanced_data> instanced_data;
     auto render_view = m_registry.view<Transform, Instanced, Shader_program>();
     for (auto [entity, transform, instanced, shader] : render_view.each()) {
@@ -176,14 +189,18 @@ void Application::render_instanced() noexcept
         glm::vec3 model_rotation{transform.rotation};
         glm::vec3 model_scale{transform.scale};
 
-        glm::mat4 model_mat{1.0f};
+        /// TODO: Cache these
+        glm::mat4& model_mat{instanced.model_matrix};
 
-        model_mat = glm::translate(model_mat, model_position);
+        if (transform.dirty) {
+            model_mat = glm::translate(model_mat, model_position);
 
-        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
-        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
-        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
-        model_mat = glm::scale(model_mat, model_scale);
+            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
+            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
+            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
+            model_mat = glm::scale(model_mat, model_scale);
+            transform.dirty = false;
+        }
 
         instanced_data.push_back({model_mat, instanced.color});
     }
@@ -194,7 +211,7 @@ void Application::render_instanced() noexcept
 
         float const time_diff =
             std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-        //sal::Log::info("render_time_instanced: {}", time_diff);
+        sal::Log::info("render_time_instanced: {}", time_diff);
         return;
     }
 
@@ -285,7 +302,7 @@ void Application::render_instanced() noexcept
 
     float const time_diff =
         std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-    //sal::Log::info("render_time_instanced: {}", time_diff);
+    sal::Log::info("render_time_instanced: {}", time_diff);
 }
 
 void Application::render_text() noexcept
@@ -350,7 +367,7 @@ void Application::render_text() noexcept
 
     float const time_diff =
         std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-    //sal::Log::info("render_time_text: {}", time_diff);
+    sal::Log::info("render_time_text: {}", time_diff);
 }
 
 void Application::run_engine_tasks() noexcept

@@ -8,6 +8,8 @@
 #include "application.h"
 #include "cell_position.h"
 
+#include "effolkronium/random.hpp"
+
 #include <mutex>
 #include <random>
 
@@ -23,15 +25,16 @@ struct Player {
     std::size_t index{0};
 };
 
+template<std::size_t Board_w, std::size_t Board_h, std::size_t N_colors, std::size_t N_players>
 class Game {
 public:
-    Game(std::size_t const board_w,
-         std::size_t const board_h,
-         std::size_t const n_colors,
-         std::size_t const n_players) noexcept;
+    using Random_engine = effolkronium::random_local;
+    using Board_state = std::array<std::array<Cell, Board_w>, Board_h>;
+
+    Game() noexcept;
     ~Game() noexcept = default;
 
-    std::vector<std::vector<Cell>> const& cells() noexcept;
+    std::optional<Board_state> cells() noexcept;
 
     std::vector<std::size_t> available_moves() noexcept;
 
@@ -51,39 +54,39 @@ public:
     Game& operator=(const Game& other) = delete;
 
 private:
+    typedef glm::vec<2, std::int32_t> v2;
+
     void initialize_board() noexcept;
 
-    void flood_fill_to_color(glm::vec2 const pos,
-                             size_t const owner,
-                             size_t const new_color) noexcept;
+    void flood_fill_to_color(v2 const pos, size_t const owner, size_t const new_color) noexcept;
 
 
-    bool in_bounds(glm::vec2 const& pos) noexcept;
+    bool in_bounds(v2 const& pos) noexcept;
 
-    Cell& cell_at(glm::vec2 const& pos) noexcept;
+    Cell& cell_at(v2 const& pos) noexcept;
 
     template<typename F>
     void for_each_cell(F&& func) noexcept
     {
-        for (std::size_t y{0}; y < m_board_height; y++) {
-            for (std::size_t x{0}; x < m_board_width; x++) {
+        for (std::size_t y{0}; y < Board_h; y++) {
+            for (std::size_t x{0}; x < Board_w; x++) {
                 func(x, y);
             }
         }
     }
 
-    std::mutex m_cell_mutex;
-    std::vector<std::vector<Cell>> m_cells;
-    std::mt19937 m_rand_engine;
 
-    std::size_t m_board_width{0};
-    std::size_t m_board_height{0};
-    std::size_t m_n_colors{0};
-    std::size_t m_n_players{0};
+    std::mutex m_cell_mutex;
+
+    //std::vector<std::vector<Cell>> m_cells;
+    std::array<std::array<Cell, Board_w>, Board_h> m_cells;
+
+    Random_engine m_rand_engine{};
 
     std::size_t m_turn{0};
     std::vector<Player> m_players;
-    std::vector<glm::vec2> m_starting_positions;
+    std::vector<v2> m_starting_positions;
+    std::atomic_bool m_should_not_report;
 };
 
 #endif //SALMIAC_GAME_H

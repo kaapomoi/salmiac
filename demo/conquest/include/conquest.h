@@ -25,8 +25,8 @@ public:
     void cleanup() noexcept;
 
 private:
-    static constexpr std::size_t n_games{200};
-    static constexpr std::size_t board_h{30};
+    static constexpr std::size_t n_games{64};
+    static constexpr std::size_t board_h{40};
     static constexpr std::size_t board_w{40};
 
     void run_user_tasks() noexcept final;
@@ -47,7 +47,7 @@ private:
     std::vector<glm::vec4> m_cell_colors{{0.8f, 0.2f, 0.2f, 1.f},  {0.1f, 0.8f, 0.15f, 1.f},
                                          {0.23f, 0.1f, 0.8f, 1.f}, {0.8f, 0.75f, 0.11f, 1.f},
                                          {1.f, 0.25f, 0.87f, 1.f}, {0.05f, 0.78f, .78f, 1.f}};
-    Orchestrator m_orchestrator{n_games, board_w, board_h};
+    Orchestrator<board_w, board_h, 6, 2> m_orchestrator{n_games};
 };
 
 #endif

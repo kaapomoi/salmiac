@@ -13,6 +13,9 @@ class Primitive_factory {
 public:
     static Mesh cube(glm::vec3 const dimensions, std::vector<Texture> const textures = {}) noexcept;
 
+    static Mesh plane(glm::vec3 const dimensions,
+                      std::vector<Texture> const textures = {}) noexcept;
+
 private:
 };
 

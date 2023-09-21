@@ -3,6 +3,8 @@ add_library(conquest STATIC
         src/game.cpp
         src/artisan.cpp
         src/orchestrator.cpp
+        src/neural_net.cpp
+        src/template_definitions.cpp
 )
 
 target_include_directories(conquest PUBLIC include)

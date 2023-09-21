@@ -6,15 +6,17 @@
 #define SALMIAC_ARTISAN_H
 
 #include "game.h"
+#include "neural_net.h"
 
+template<std::size_t Board_w, std::size_t Board_h, std::size_t N_colors, std::size_t N_players>
 class Artisan {
 public:
     Artisan() noexcept;
 
-    std::size_t play(std::vector<std::size_t> const& available_moves) noexcept;
+    std::size_t play(Game<Board_w, Board_h, N_colors, N_players>& game) noexcept;
 
 private:
-    std::mt19937 m_rand_engine;
+    Neural_net m_neural_net{{Board_w * Board_h * N_colors, 800, 6}};
 };
 
 #endif //SALMIAC_ARTISAN_H

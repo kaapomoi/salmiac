@@ -1,5 +1,6 @@
 #include "conquest.h"
 
+#include "neural_net.h"
 #include "texture_loader.h"
 
 
@@ -41,7 +42,7 @@ sal::Application::Exit_code Conquest::run() noexcept
     sal::Texture cube_tex{sal::Texture_loader::from_file("../res/models/case/j-cover.png",
                                                          sal::Texture::Type::diffuse)};
 
-    sal::Mesh cube{sal::Primitive_factory::cube(glm::vec3{scale_factor}, {cube_tex})};
+    sal::Mesh cube{sal::Primitive_factory::plane(glm::vec3{scale_factor}, {cube_tex})};
     m_models.push_back(sal::Model{{cube}});
 
     auto text_vert = sal::File_reader::read_file("../res/shaders/basic_text_vert.glsl");
@@ -59,32 +60,39 @@ sal::Application::Exit_code Conquest::run() noexcept
                 m_registry.emplace<sal::Shader_program>(ent, m_shaders.at(1));
                 m_registry.emplace<Cell_position>(ent, x, y, g);
                 sal::Transform t{
-                    glm::vec3{x + board_w * 1.2f * (g % 10), y + board_h * 1.2f * (g / 10), 0},
+                    glm::vec3{x + board_w * 1.2f * (g % 8), y + board_h * 1.2f * (g / 8), 0},
                     glm::vec3{0.f}, glm::vec3{1.f}};
                 m_registry.emplace<sal::Transform>(ent, t);
             }
         }
     }
 
+    sal::Transform const center{glm::vec3{board_w * 8.f * 1.2f / 2.f - (0.5f + board_w * 0.1f),
+                                          board_h * 8.f * 1.2f / 2.f - (0.5f + board_h * 0.1f),
+                                          0.f},
+                                glm::vec3{0.f}, glm::vec3{1.f}};
+
     auto entity2 = m_registry.create();
-    sal::Text text{"conquest3d", m_fonts.front(), glm::vec2{0}, glm::vec2{0.5f},
+    sal::Text text{"conquest3d", m_fonts.front(), glm::vec2{0}, glm::vec2{1.f},
                    glm::vec4{1.f, 1.f, 1.f, 1.f}};
     m_registry.emplace<sal::Text>(entity2, text);
     m_registry.emplace<sal::Shader_program>(entity2, m_shaders.at(2));
-    sal::Transform t{glm::vec3{20, -2, 0}, glm::vec3{0.f}, glm::vec3{0.1f}};
+    sal::Transform t{glm::vec3{center.position.x, -20, 0}, glm::vec3{0.f}, glm::vec3{1.f}};
     m_registry.emplace<sal::Transform>(entity2, t);
 
     m_rand_engine.seed(time(NULL));
 
     entt::entity camera{m_registry.create()};
     m_registry.emplace<sal::Transform>(camera,
-                                       glm::vec3{board_w / 2.f - 0.5f, board_h / 2.f - 0.5f, 50.f},
+                                       glm::vec3{center.position.x, center.position.y, 500.f},
                                        glm::vec3{0.0f}, glm::vec3{1.0f});
     m_registry.emplace<sal::Camera>(camera, glm::vec3{0.f, 1.f, 0.f}, -90.f, 0.f);
 
 
     m_t_start = std::chrono::high_resolution_clock::now();
     m_t_prev_update = m_t_start;
+
+    m_orchestrator.play_one_game_each();
 
     while (!m_suggest_close) {
         update();
@@ -126,7 +134,6 @@ void Conquest::run_user_tasks() noexcept
         m_orchestrator.restart();
     }
 
-    m_orchestrator.play_one_game_each();
 
     auto const cells = m_orchestrator.cells();
 
@@ -135,8 +142,12 @@ void Conquest::run_user_tasks() noexcept
     /// Find a better way.
     auto cell_view = m_registry.view<sal::Transform, sal::Instanced, Cell_position>();
     for (auto [entity, transform, instance, cell_pos] : cell_view.each()) {
-        instance.color =
-            m_cell_colors.at(cells.at(cell_pos.game_id).at(cell_pos.y).at(cell_pos.x).color);
+        if (!cells.at(cell_pos.game_id)) {
+            continue;
+        }
+
+        instance.color = m_cell_colors.at(
+            cells.at(cell_pos.game_id).value().at(cell_pos.y).at(cell_pos.x).color);
     }
 
     std::string camera_pos_text;
@@ -191,6 +202,7 @@ void Conquest::set_user_uniforms_before_render() noexcept
 
 void Conquest::set_render_model_uniforms(sal::Shader_program& shader) noexcept
 {
+    /*
     auto camera_view = m_registry.view<sal::Transform, sal::Camera>();
     for (auto [entity, transform, camera] : camera_view.each()) {
 
@@ -211,6 +223,7 @@ void Conquest::set_render_model_uniforms(sal::Shader_program& shader) noexcept
     }
 
     shader.set_uniform<float>("material.shininess", 64.0f);
+    */
 }
 
 

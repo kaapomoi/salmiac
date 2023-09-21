@@ -31,17 +31,27 @@ public:
         }
     }
 
-    void insert(F&& f) noexcept { m_job_queue.push(f); }
+    void insert(F&& f) noexcept { m_job_queue.push(std::move(f)); }
+
+    void cancel_all() noexcept
+    {
+        m_should_close.store(true);
+        m_job_queue.cancel_all();
+    }
 
 private:
     void execute_worker() noexcept
     {
-        while (true) {
-            F job{m_job_queue.pop()};
-            job();
+        while (!m_should_close.load()) {
+            std::optional<F> job{m_job_queue.pop()};
+            // Check for nullopt
+            if (job) {
+                job.value()();
+            }
         }
     }
 
+    std::atomic_bool m_should_close{false};
     Ts_queue<F> m_job_queue;
     std::vector<std::jthread> m_threads;
 };

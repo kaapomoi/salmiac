@@ -37,5 +37,8 @@
   }, {
     "name" : "freetype",
     "version>=" : "2.12.1#3"
+  }, {
+    "name" : "effolkronium-random",
+    "version>=" : "1.4.1"
   } ]
 }

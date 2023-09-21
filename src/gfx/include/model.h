@@ -11,6 +11,7 @@ namespace sal {
 
 struct Model {
     std::vector<Mesh> meshes;
+    glm::mat4 model_matrix{1.0f};
 };
 
 } // namespace sal
