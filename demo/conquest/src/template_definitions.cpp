@@ -4,7 +4,6 @@
 
 #include "artisan.cpp"
 #include "game.cpp"
-#include "neural_net.cpp"
 #include "orchestrator.cpp"
 
 

@@ -158,29 +158,7 @@ void N_body_sim::set_user_uniforms_before_render() noexcept
     }
 }
 
-void N_body_sim::set_render_model_uniforms(sal::Shader_program& shader) noexcept
-{
-    auto camera_view = m_registry.view<sal::Transform, sal::Camera>();
-    for (auto [entity, transform, camera] : camera_view.each()) {
-
-        glm::mat4 const projection = glm::perspective(glm::radians(camera.zoom()),
-                                                      static_cast<float>(m_window_width)
-                                                          / static_cast<float>(m_window_height),
-                                                      0.01f, 10000.0f);
-
-        glm::mat4 const view = camera.get_view_matrix(transform.position);
-
-        shader.set_uniform("camera_pos", transform.position);
-        shader.set_uniform("view", view);
-        shader.set_uniform("projection", projection);
-    }
-
-    if (shader.has_uniform("frame")) {
-        shader.set_uniform<std::int32_t>("frame", static_cast<std::int32_t>(m_frame_counter));
-    }
-
-    shader.set_uniform<float>("material.shininess", 64.0f);
-}
+void N_body_sim::set_render_model_uniforms(sal::Shader_program& shader) noexcept {}
 
 
 void N_body_sim::handle_input() noexcept
@@ -247,7 +225,8 @@ void N_body_sim::create_nodes(std::size_t const n) noexcept
             float const m{mass(m_rand_engine)};
 
             m_registry.emplace<std::shared_ptr<Node>>(entity, std::make_shared<Node>(node));
-            m_registry.emplace<sal::Instanced>(entity, sal::Instanced{m_models.at(1)});
+            m_registry.emplace<sal::Instanced>(entity, m_models.at(1), glm::mat4{1.f},
+                                               glm::vec4{1.f, 1.f, 1.f, 0.5f}, false);
             m_registry.emplace<sal::Shader_program>(entity, m_shaders.at(3));
             sal::Transform t{node.position, glm::vec3{0.f}, glm::vec3{1.f}};
             m_registry.emplace<sal::Transform>(entity, t);
@@ -286,6 +265,7 @@ void N_body_sim::update_nodes() noexcept
 
         transform.rotation = node->velocity * 10000.f * 360.f;
         transform.position = node->position;
+        transform.dirty = true;
     }
 
     std::chrono::high_resolution_clock::time_point now{std::chrono::high_resolution_clock::now()};

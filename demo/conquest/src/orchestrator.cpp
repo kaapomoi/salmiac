@@ -15,8 +15,8 @@ Orchestrator<Board_w, Board_h, N_colors, N_players>::Orchestrator(
         m_games.push_back(std::make_unique<Game<Board_w, Board_h, N_colors, N_players>>());
     }
 
-    m_artisans.emplace_back();
-    m_artisans.emplace_back();
+    m_artisans.emplace_back(0);
+    m_artisans.emplace_back(1);
 }
 
 template<std::size_t Board_w, std::size_t Board_h, std::size_t N_colors, std::size_t N_players>

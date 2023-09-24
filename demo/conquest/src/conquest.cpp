@@ -55,14 +55,27 @@ sal::Application::Exit_code Conquest::run() noexcept
         for (std::size_t y{0}; y < board_h; y++) {
             for (std::size_t x{0}; x < board_w; x++) {
                 auto ent = m_registry.create();
-                m_registry.emplace<sal::Instanced>(ent, m_models.front(),
-                                                   glm::vec4{1.f, 1.f, 1.f, 0.5f});
-                m_registry.emplace<sal::Shader_program>(ent, m_shaders.at(1));
-                m_registry.emplace<Cell_position>(ent, x, y, g);
-                sal::Transform t{
+                auto& model = m_models.front();
+
+                glm::mat4 model_mat{1.f};
+                sal::Transform transform{
                     glm::vec3{x + board_w * 1.2f * (g % 8), y + board_h * 1.2f * (g / 8), 0},
                     glm::vec3{0.f}, glm::vec3{1.f}};
-                m_registry.emplace<sal::Transform>(ent, t);
+
+                model_mat = glm::translate(model_mat, transform.position);
+                model_mat =
+                    glm::rotate(model_mat, glm::radians(transform.rotation.x), {1.0f, 0.0f, 0.0f});
+                model_mat =
+                    glm::rotate(model_mat, glm::radians(transform.rotation.y), {0.0f, 1.0f, 0.0f});
+                model_mat =
+                    glm::rotate(model_mat, glm::radians(transform.rotation.z), {0.0f, 0.0f, 1.0f});
+                model_mat = glm::scale(model_mat, transform.scale);
+
+                m_registry.emplace<sal::Instanced>(ent, model, model_mat,
+                                                   glm::vec4{1.f, 1.f, 1.f, 0.5f}, true);
+                m_registry.emplace<sal::Shader_program>(ent, m_shaders.at(1));
+                m_registry.emplace<Cell_position>(ent, x, y, g);
+                m_registry.emplace<sal::Transform>(ent, transform);
             }
         }
     }

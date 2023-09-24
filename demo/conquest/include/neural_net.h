@@ -18,12 +18,13 @@ struct Neuron {
 class Neural_net {
 public:
     using Layer = std::vector<Neuron>;
-    Neural_net(std::vector<std::size_t> const& topology) noexcept;
+    explicit Neural_net(std::vector<std::size_t> const& topology) noexcept;
 
-    std::vector<double> process(std::vector<double> inputs,
-                                std::function<double(double)> activation_function) noexcept;
+    std::vector<std::pair<std::size_t, double>>
+    process(std::vector<double> inputs, std::function<double(double)> activation_function) noexcept;
 
     using Random_engine = effolkronium::random_local;
+
     Random_engine rand_engine{};
 
 private:

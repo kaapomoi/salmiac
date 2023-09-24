@@ -177,32 +177,37 @@ void Application::render_instanced() noexcept
     set_user_uniforms_before_render();
 
     struct Instanced_data {
-        glm::mat4 model_mat;
-        glm::vec4 color;
+        glm::mat4 const model_mat;
+        glm::vec4 const color;
     };
 
     /// TODO: Don't create instanced_data every time. Cache it somewhere.
     std::vector<Instanced_data> instanced_data;
     auto render_view = m_registry.view<Transform, Instanced, Shader_program>();
     for (auto [entity, transform, instanced, shader] : render_view.each()) {
-        glm::vec3 model_position{transform.position};
-        glm::vec3 model_rotation{transform.rotation};
-        glm::vec3 model_scale{transform.scale};
 
-        /// TODO: Cache these
-        glm::mat4& model_mat{instanced.model_matrix};
+        if (instanced.is_static) {
+            instanced_data.push_back({instanced.model_matrix, instanced.color});
+        }
+        else {
+            glm::mat4 model_mat{1.f};
 
-        if (transform.dirty) {
-            model_mat = glm::translate(model_mat, model_position);
+            if (transform.dirty) {
+                model_mat = glm::translate(model_mat, transform.position);
+                model_mat =
+                    glm::rotate(model_mat, glm::radians(transform.rotation.x), {1.0f, 0.0f, 0.0f});
+                model_mat =
+                    glm::rotate(model_mat, glm::radians(transform.rotation.y), {0.0f, 1.0f, 0.0f});
+                model_mat =
+                    glm::rotate(model_mat, glm::radians(transform.rotation.z), {0.0f, 0.0f, 1.0f});
+                model_mat = glm::scale(model_mat, transform.scale);
+                transform.dirty = false;
+            }
 
-            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
-            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
-            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
-            model_mat = glm::scale(model_mat, model_scale);
-            transform.dirty = false;
+            instanced_data.push_back({model_mat, instanced.color});
         }
 
-        instanced_data.push_back({model_mat, instanced.color});
+        /// TODO: Cache these
     }
 
     if (instanced_data.empty()) {
@@ -219,10 +224,10 @@ void Application::render_instanced() noexcept
     glGenBuffers(1, &instanced_vbo);
     glBindBuffer(GL_ARRAY_BUFFER, instanced_vbo);
     glBufferData(GL_ARRAY_BUFFER, instanced_data.size() * sizeof(Instanced_data),
-                 &instanced_data[0], GL_DYNAMIC_DRAW);
+                 &instanced_data[0], GL_STATIC_DRAW);
 
     for (auto [e, t, i, s] : render_view.each()) {
-        for (auto mesh : i.model.meshes) {
+        for (auto const& mesh : i.model.meshes) {
             glBindVertexArray(mesh.vao);
 
             /// Model matrix glm::mat4

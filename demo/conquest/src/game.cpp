@@ -69,7 +69,7 @@ template<std::size_t Board_w, std::size_t Board_h, std::size_t N_colors, std::si
 bool Game<Board_w, Board_h, N_colors, N_players>::done() noexcept
 {
     std::lock_guard<std::mutex> lck{m_cell_mutex};
-    return std::reduce(m_players.begin(), m_players.end(), 0,
+    return std::reduce(m_players.begin(), m_players.end(), std::size_t{0},
                        [](std::size_t sum, Player const& p) { return sum + p.owned_cells; })
            == (Board_w * Board_h);
 }

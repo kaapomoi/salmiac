@@ -51,8 +51,8 @@ Neural_net::Neural_net(std::vector<std::size_t> const& topology) noexcept
 }
 
 /// TODO: Add biases
-std::vector<double> Neural_net::process(std::vector<double> inputs,
-                                        std::function<double(double)> activation_function) noexcept
+std::vector<std::pair<std::size_t, double>> Neural_net::process(
+    std::vector<double> inputs, std::function<double(double)> activation_function) noexcept
 {
     Layer& first_layer{m_net.front()};
     for (std::size_t i{0}; i < inputs.size(); i++) {
@@ -62,9 +62,12 @@ std::vector<double> Neural_net::process(std::vector<double> inputs,
     auto feed_forward = [&activation_function](Layer& current_layer, Layer& previous_layer) {
         for (std::size_t neuron_index{0}; neuron_index < current_layer.size(); neuron_index++) {
             double sum{0.0};
-            for (std::size_t n{0}; n < previous_layer.size(); n++) {
-                sum += previous_layer.at(n).output * previous_layer.at(n).weights.at(neuron_index);
-            }
+
+            std::for_each(std::execution::unseq, previous_layer.begin(), previous_layer.end(),
+                          [&](Neuron const& prev_layer_neuron) -> void {
+                              sum += prev_layer_neuron.output
+                                     * prev_layer_neuron.weights.at(neuron_index);
+                          });
 
             current_layer.at(neuron_index).output = activation_function(sum);
         }
@@ -76,9 +79,12 @@ std::vector<double> Neural_net::process(std::vector<double> inputs,
         feed_forward(layer, prev_layer);
     }
 
-    std::vector<double> output_values;
+    std::vector<std::pair<std::size_t, double>> output_values;
+    std::size_t color_index{0};
     std::transform(m_net.back().begin(), m_net.back().end(), std::back_inserter(output_values),
-                   [](Neuron& n) -> double { return n.output; });
+                   [&color_index](Neuron& n) -> std::pair<std::size_t, double> {
+                       return {color_index++, n.output};
+                   });
 
     return output_values;
 }
