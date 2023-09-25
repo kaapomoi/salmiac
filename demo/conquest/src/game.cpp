@@ -65,13 +65,21 @@ std::vector<std::size_t> Game<Board_w, Board_h, N_colors, N_players>::available_
     return available_moves;
 }
 
+
+template<std::size_t Board_w, std::size_t Board_h, std::size_t N_colors, std::size_t N_players>
+std::vector<Player> const& Game<Board_w, Board_h, N_colors, N_players>::players() noexcept
+{
+    return m_players;
+}
+
 template<std::size_t Board_w, std::size_t Board_h, std::size_t N_colors, std::size_t N_players>
 bool Game<Board_w, Board_h, N_colors, N_players>::done() noexcept
 {
     std::lock_guard<std::mutex> lck{m_cell_mutex};
-    return std::reduce(m_players.begin(), m_players.end(), std::size_t{0},
-                       [](std::size_t sum, Player const& p) { return sum + p.owned_cells; })
-           == (Board_w * Board_h);
+    return (std::reduce(m_players.begin(), m_players.end(), std::size_t{0},
+                        [](std::size_t sum, Player const& p) { return sum + p.owned_cells; })
+            == (Board_w * Board_h))
+           || m_turns_played > max_turns;
 }
 
 template<std::size_t Board_w, std::size_t Board_h, std::size_t N_colors, std::size_t N_players>
@@ -84,6 +92,7 @@ void Game<Board_w, Board_h, N_colors, N_players>::initialize_board() noexcept
 
     m_players.clear();
     m_should_not_report.store(false);
+    m_turns_played = 0;
 
     for (std::size_t i{0}; i < N_players; i++) {
         m_players.emplace_back(Player{3, i, i});
@@ -168,10 +177,13 @@ bool Game<Board_w, Board_h, N_colors, N_players>::execute_turn(
         bfs(player_index, color_index,
             [player_index](Cell& cell) -> void { cell.owner = player_index; });
 
+
     m_turn++;
     if (m_turn >= N_players) {
         m_turn = 0;
     }
+
+    m_turns_played++;
 
     return true;
 }
@@ -206,8 +218,7 @@ std::size_t Game<Board_w, Board_h, N_colors, N_players>::bfs(std::size_t const p
     std::size_t num_visited{0};
     std::size_t const old_color{m_players.at(player_index).current_color};
 
-    /// TODO: Make a better visited array.
-    std::array<std::array<bool, 50>, 50> visited{};
+    std::array<std::array<bool, Board_w>, Board_h> visited{};
 
     std::queue<v2> search_queue{{m_starting_positions.at(player_index)}};
     visited.at(search_queue.front().y).at(search_queue.front().x) = true;
@@ -256,5 +267,12 @@ template<std::size_t Board_w, std::size_t Board_h, std::size_t N_colors, std::si
 Cell& Game<Board_w, Board_h, N_colors, N_players>::cell_at(v2 const& pos) noexcept
 {
     return m_cells.at(pos.y).at(pos.x);
+}
+
+template<std::size_t Board_w, std::size_t Board_h, std::size_t N_colors, std::size_t N_players>
+typename Game<Board_w, Board_h, N_colors, N_players>::Random_engine&
+Game<Board_w, Board_h, N_colors, N_players>::rand_engine() noexcept
+{
+    return m_rand_engine;
 }
 

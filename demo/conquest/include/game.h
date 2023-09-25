@@ -30,9 +30,12 @@ class Game {
 public:
     using Random_engine = effolkronium::random_local;
     using Board_state = std::array<std::array<Cell, Board_w>, Board_h>;
+    static constexpr std::size_t max_turns{200};
 
     Game() noexcept;
     ~Game() noexcept = default;
+
+    std::vector<Player> const& players() noexcept;
 
     std::optional<Board_state> cells() noexcept;
 
@@ -49,9 +52,12 @@ public:
                     std::size_t const color_index,
                     F&& callback) noexcept;
 
+    Random_engine& rand_engine() noexcept;
+
     Game(const Game& other) = delete;
 
     Game& operator=(const Game& other) = delete;
+
 
 private:
     typedef glm::vec<2, std::int32_t> v2;
@@ -83,6 +89,7 @@ private:
 
     Random_engine m_rand_engine{};
 
+    std::size_t m_turns_played{0};
     std::size_t m_turn{0};
     std::vector<Player> m_players;
     std::vector<v2> m_starting_positions;

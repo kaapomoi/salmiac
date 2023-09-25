@@ -14,7 +14,7 @@ class Orchestrator {
 public:
     Orchestrator(std::size_t const n_games) noexcept;
 
-    std::size_t play_one_game_each() noexcept;
+    void start() noexcept;
 
     void restart() noexcept;
     void stop() noexcept;
@@ -22,8 +22,18 @@ public:
     std::vector<std::optional<typename Game<Board_w, Board_h, N_colors, N_players>::Board_state>>
     cells() noexcept;
 
+    std::pair<std::size_t, float> current_artisan() noexcept;
+
+    void update() noexcept;
+
 private:
+    std::size_t play_games_for_current_artisan() noexcept;
+
+    std::size_t const m_n_games;
+
     sal::Thread_pool<std::function<void()>> m_thread_pool;
+
+    std::size_t m_current_artisan_index{0};
 
     std::vector<std::unique_ptr<Game<Board_w, Board_h, N_colors, N_players>>> m_games;
     std::vector<Artisan<Board_w, Board_h, N_colors, N_players>> m_artisans;

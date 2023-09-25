@@ -19,13 +19,12 @@ class Conquest : public sal::Application {
 public:
     sal::Application::Exit_code start() noexcept;
 
-
     sal::Application::Exit_code run() noexcept;
 
     void cleanup() noexcept;
 
 private:
-    static constexpr std::size_t n_games{64};
+    static constexpr std::size_t n_games{16};
     static constexpr std::size_t board_h{40};
     static constexpr std::size_t board_w{40};
 

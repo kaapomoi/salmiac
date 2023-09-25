@@ -14,18 +14,8 @@
 #include <ranges>
 #include <sstream>
 
-// TODO: Use std::array as the Layer type.
 Neural_net::Neural_net(std::vector<std::size_t> const& topology) noexcept
 {
-    auto generate_neuron = [this](std::size_t const n_weights) -> Neuron {
-        Neuron n;
-        n.weights.resize(n_weights);
-        /// Randomize weights
-        std::generate(n.weights.begin(), n.weights.end(),
-                      [this]() { return rand_engine.get(0.f, 1.f); });
-        return n;
-    };
-
     for (std::size_t i{0}; i < topology.size() - 1; i++) {
         std::size_t const layer_neuron_count{topology.at(i)};
         std::size_t const next_layer_neuron_count{topology.at(i + 1)};
@@ -49,6 +39,23 @@ Neural_net::Neural_net(std::vector<std::size_t> const& topology) noexcept
 
     //print();
 }
+
+
+Neural_net::Neural_net(Neural_net const& a, Neural_net const& b, float const a_bias) noexcept
+{
+    m_net = a.m_net;
+
+    for (std::size_t i{0}; i < m_net.size() - 1; i++) {
+        for (std::size_t j{0}; j < m_net.at(i).size(); j++) {
+            for (std::size_t k{0}; k < m_net.at(i).at(j).weights.size(); k++) {
+                if (rand_engine.get(0.f, 1.f) >= a_bias) {
+                    m_net.at(i).at(j).weights.at(k) = b.m_net.at(i).at(j).weights.at(k);
+                }
+            }
+        }
+    }
+}
+
 
 /// TODO: Add biases
 std::vector<std::pair<std::size_t, double>> Neural_net::process(
@@ -87,6 +94,36 @@ std::vector<std::pair<std::size_t, double>> Neural_net::process(
                    });
 
     return output_values;
+}
+
+void Neural_net::mutate_random(float likelyness) noexcept
+{
+    std::for_each(std::execution::unseq, m_net.begin(), m_net.end(), [&](Layer& layer) -> void {
+        std::for_each(std::execution::unseq, layer.begin(), layer.end(),
+                      [&](Neuron& neuron) -> void {
+                          std::for_each(std::execution::unseq, neuron.weights.begin(),
+                                        neuron.weights.end(), [&](double& weight) -> void {
+                                            if (rand_engine.get(0.f, 1.f) <= likelyness) {
+                                                weight = rand_engine.get(0.f, 1.f);
+                                            }
+                                        });
+                      });
+    });
+}
+
+void Neural_net::mutate_by_delta(float likelyness, float delta) noexcept
+{
+    std::for_each(std::execution::unseq, m_net.begin(), m_net.end(), [&](Layer& layer) -> void {
+        std::for_each(std::execution::unseq, layer.begin(), layer.end(),
+                      [&](Neuron& neuron) -> void {
+                          std::for_each(std::execution::unseq, neuron.weights.begin(),
+                                        neuron.weights.end(), [&](double& weight) -> void {
+                                            if (rand_engine.get(0.f, 1.f) <= likelyness) {
+                                                weight += rand_engine.get(-delta / 2, delta / 2);
+                                            }
+                                        });
+                      });
+    });
 }
 
 

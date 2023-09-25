@@ -105,7 +105,7 @@ sal::Application::Exit_code Conquest::run() noexcept
     m_t_start = std::chrono::high_resolution_clock::now();
     m_t_prev_update = m_t_start;
 
-    m_orchestrator.play_one_game_each();
+    m_orchestrator.start();
 
     while (!m_suggest_close) {
         update();
@@ -142,6 +142,8 @@ void Conquest::run_user_tasks() noexcept
     // Set winding order to counter-clockwise (default)
     glFrontFace(GL_CCW);
 
+    m_orchestrator.update();
+
     if (m_should_restart_sim) {
         m_should_restart_sim = false;
         m_orchestrator.restart();
@@ -163,23 +165,26 @@ void Conquest::run_user_tasks() noexcept
             cells.at(cell_pos.game_id).value().at(cell_pos.y).at(cell_pos.x).color);
     }
 
-    std::string camera_pos_text;
-    auto camera_view = m_registry.view<sal::Transform, sal::Camera>();
-    for (auto [entity, transform, camera] : camera_view.each()) {
-        auto c_of_m = transform.position;
-        std::string x{std::to_string(c_of_m.x)};
-        std::string y{std::to_string(c_of_m.y)};
-        std::string z{std::to_string(c_of_m.z)};
-        x.resize(5);
-        y.resize(5);
-        z.resize(5);
-        std::string a{x + ", " + y + ", " + z};
-        camera_pos_text = a;
-    }
+    // std::string camera_pos_text;
+    // auto camera_view = m_registry.view<sal::Transform, sal::Camera>();
+    // for (auto [entity, transform, camera] : camera_view.each()) {
+    //     auto c_of_m = transform.position;
+    //     std::string x{std::to_string(c_of_m.x)};
+    //     std::string y{std::to_string(c_of_m.y)};
+    //     std::string z{std::to_string(c_of_m.z)};
+    //     x.resize(5);
+    //     y.resize(5);
+    //     z.resize(5);
+    //     std::string a{x + ", " + y + ", " + z};
+    //     std::string b;
+    //     camera_pos_text = b;
+    // }
 
+    auto const current_artisan = m_orchestrator.current_artisan();
     auto text_view = m_registry.view<sal::Transform, sal::Text>();
     for (auto [entity, transform, text] : text_view.each()) {
-        text.set_content(camera_pos_text);
+        text.set_content({std::to_string(current_artisan.first)
+                          + ";f=" + std::to_string(current_artisan.second)});
     }
 }
 
