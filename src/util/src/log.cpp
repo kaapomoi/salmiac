@@ -24,6 +24,11 @@ void Log::init(std::string&& file_name) noexcept
     spdlog::register_logger(combined_logger);
 }
 
+void Log::debug(const std::string& message) noexcept
+{
+    spdlog::get(logger_name)->debug(message);
+}
+
 void Log::info(const std::string& message) noexcept
 {
     spdlog::get(logger_name)->info(message);

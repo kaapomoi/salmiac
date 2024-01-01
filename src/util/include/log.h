@@ -15,6 +15,13 @@ public:
     static void init(std::string&& file_name) noexcept;
 
     template<typename... Args>
+    static void debug(spdlog::format_string_t<Args...> fmt, Args&&... args)
+    {
+        spdlog::get(logger_name)->debug(fmt, std::forward<Args>(args)...);
+    }
+    static void debug(std::string const& message) noexcept;
+
+    template<typename... Args>
     static void info(spdlog::format_string_t<Args...> fmt, Args&&... args)
     {
         spdlog::get(logger_name)->info(fmt, std::forward<Args>(args)...);
