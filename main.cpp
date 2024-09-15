@@ -3,22 +3,31 @@
  */
 
 #include "application.h"
-#include "conquest.h"
-#include "n_body_sim.h"
+#include "bbmania.h"
+#include "bbmania_server.h"
 #include "thread_pool.h"
 
 #include <iostream>
 
 
-int main()
+int main(std::int32_t const argc, char const* const* argv)
 {
-    Conquest app;
-    //N_body_sim app;
-    app.start();
+    //Conquest app;
+    if (argc > 1) {
+        if (strcmp(argv[1], "--server") == 0) {
+            bbm::Bbmania_server server;
 
-    app.run();
+            server.run();
+        }
+    }
+    else {
+        bbm::Bbmania app;
+        app.start();
 
-    app.cleanup();
+        app.run();
+
+        app.cleanup();
+    }
 
     return 0;
 }

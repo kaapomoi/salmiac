@@ -56,10 +56,14 @@ protected:
     Font_loader m_font_loader;
     bool m_suggest_close{false};
     std::size_t m_frame_counter{0};
+
     float m_delta_time{0.0};
+
+    std::size_t m_target_fps{200};
 
     std::chrono::high_resolution_clock::time_point m_t_start;
     std::chrono::high_resolution_clock::time_point m_t_prev_update;
+    std::chrono::high_resolution_clock::time_point m_goal_time;
 
     static std::size_t m_window_width;
     static std::size_t m_window_height;

@@ -14,11 +14,12 @@ namespace sal {
 struct Key_state {
     bool down_this_frame{false};
     bool down{false};
+    bool released_this_frame{false};
 };
 
 struct Mouse_position {
-    double x;
-    double y;
+    double x{0.f};
+    double y{0.f};
 
     Mouse_position operator+(Mouse_position const& other) const
     {
@@ -42,6 +43,8 @@ public:
     [[nodiscard]] bool key(std::int32_t const key) const noexcept;
 
     [[nodiscard]] bool key_now(std::int32_t const key) const noexcept;
+
+    [[nodiscard]] bool key_released_now(std::int32_t const key) const noexcept;
 
     [[nodiscard]] bool button(std::int32_t const button) const noexcept;
 

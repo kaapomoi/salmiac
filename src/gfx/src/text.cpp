@@ -30,7 +30,7 @@ void Text::set_content(std::string const& content) noexcept
     m_content = content;
     if (dirty) {
         for (std::size_t i{0}; i < m_content.size(); i++) {
-            //Mesh_binder::clear_buffer_data(m_char_quads.at(i));
+            Mesh_binder::clear_buffer_data(m_char_quads.at(i));
         }
         update_character_quads();
     }
@@ -40,8 +40,16 @@ Text::Text(std::string const& content,
            Font& font,
            glm::vec2 const& pos,
            glm::vec2 const& scale,
-           glm::vec4 const color) noexcept
-    : m_content{content}, m_font{font}, m_pos{pos}, m_scale{scale}, m_color{color}
+           glm::vec4 const color,
+           float line_height,
+           bool centered) noexcept
+    : m_content{content}
+    , m_font{font}
+    , m_pos{pos}
+    , m_scale{scale}
+    , m_color{color}
+    , m_centered{centered}
+    , m_line_height{line_height}
 {
     m_char_quads.resize(max_content_length);
     update_character_quads();
@@ -60,6 +68,12 @@ void Text::update_character_quads() noexcept
     /// Create text
     std::size_t index{0};
     for (auto const& character : m_content) {
+        if (character == '\n') {
+            x = m_pos.x;
+            y -= m_font.character_info.at('A').bitmap_h * sy * m_line_height;
+            continue;
+        }
+
         std::size_t const c{static_cast<size_t>(character - 32)};
         float const x2{x + m_font.character_info.at(c).bitmap_left * sx};
         float const y2{-y - m_font.character_info.at(c).bitmap_top * sy};
@@ -109,6 +123,11 @@ void Text::update_character_quads() noexcept
             m_size = {x, max_h};
         }
     }
+}
+
+bool Text::centered() const noexcept
+{
+    return m_centered;
 }
 
 

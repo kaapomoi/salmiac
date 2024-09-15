@@ -18,13 +18,15 @@ namespace sal {
 
 class Text {
 public:
-    static constexpr std::size_t max_content_length{256};
+    static constexpr std::size_t max_content_length{1024};
 
     Text(std::string const& content,
          Font& font,
          glm::vec2 const& pos,
          glm::vec2 const& scale,
-         glm::vec4 const color = glm::vec4{1.f}) noexcept;
+         glm::vec4 const color = glm::vec4{1.f},
+         float line_height = 2.f,
+         bool centered = false) noexcept;
 
     void set_content(std::string const& content) noexcept;
 
@@ -34,6 +36,8 @@ public:
 
     glm::vec2 const& size() noexcept;
 
+    [[nodiscard]] bool centered() const noexcept;
+
 private:
     void update_character_quads() noexcept;
 
@@ -42,9 +46,11 @@ private:
     std::string m_content;
     std::vector<Mesh> m_char_quads; // Not to be confused with Farquaads
     glm::vec4 m_color;
-    glm::vec2 m_size;
+    glm::vec2 m_size{};
     glm::vec2 m_scale;
     glm::vec2 m_pos;
+    float m_line_height{2.f};
+    bool m_centered{false};
 };
 
 

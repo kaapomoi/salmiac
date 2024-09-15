@@ -88,6 +88,11 @@ void main()
     hsv_col.y *= 0.25;
     hsv_col.z *= 0.25;
 
+    vec4 texture_colour = texture(material.diffuse, vs_uv);
+    if (texture_colour.a < 0.001) {
+        discard;
+    }
+
     // Output to screen
-    fs_color = vec4(hsv2rgb(hsv_col),1.0) * vs_color;
+    fs_color = vec4(hsv2rgb(hsv_col),1.0) * vs_color * texture_colour;
 }

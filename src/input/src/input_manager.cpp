@@ -28,6 +28,11 @@ bool Input_manager::key_now(std::int32_t key) const noexcept
     return m_keys.at(key).down_this_frame;
 }
 
+bool Input_manager::key_released_now(std::int32_t key) const noexcept
+{
+    return m_keys.at(key).released_this_frame;
+}
+
 bool Input_manager::button(std::int32_t button) const noexcept
 {
     return m_buttons.at(button).down;
@@ -65,6 +70,7 @@ void Input_manager::update_internal_state(std::function<bool(std::int32_t)>& inp
 {
     for (auto& key_state_pair : map) {
         key_state_pair.second.down_this_frame = false;
+        key_state_pair.second.released_this_frame = false;
 
         /// Check whether it was pressed or released
         if (input_callback(key_state_pair.first)) {
@@ -76,6 +82,10 @@ void Input_manager::update_internal_state(std::function<bool(std::int32_t)>& inp
         }
         else {
             // Release
+            /// Only turn this on if last frame the key was down already
+            if (key_state_pair.second.down) {
+                key_state_pair.second.released_this_frame = true;
+            }
             key_state_pair.second.down = false;
         }
     }

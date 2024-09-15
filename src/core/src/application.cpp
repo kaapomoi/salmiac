@@ -19,8 +19,9 @@ void GLAPIENTRY MessageCallback(GLenum source,
                                 const GLchar* message,
                                 const void* userParam)
 {
-    //fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
-    //       (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
+    /*fprintf(stderr, "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+            (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""), type, severity, message);
+*/
 }
 
 
@@ -29,7 +30,7 @@ Application::Exit_code Application::setup(std::size_t const w_w, std::size_t con
     sal::Log::init("sal_log.txt");
 
     if (!glfwInit()) {
-        sal::Log::fatal("Failed to initialize glfw3");
+        sal::Log::fatal("Failed to initialize glfw3!");
         return Exit_code::glfw_init_fail;
     }
     else {
@@ -56,9 +57,10 @@ Application::Exit_code Application::setup(std::size_t const w_w, std::size_t con
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+
     // During init, enable debug output
     glEnable(GL_DEBUG_OUTPUT);
-    glDebugMessageCallback(MessageCallback, 0);
+    glDebugMessageCallback(MessageCallback, nullptr);
 
     return Exit_code::ok;
 }
@@ -67,6 +69,7 @@ Application::Exit_code Application::setup(std::size_t const w_w, std::size_t con
 void Application::update() noexcept
 {
     auto t_now = std::chrono::high_resolution_clock::now();
+
     m_delta_time =
         std::chrono::duration_cast<std::chrono::duration<float>>(t_now - m_t_prev_update).count();
     m_t_prev_update = t_now;
@@ -82,7 +85,7 @@ void Application::update() noexcept
 
     float const time_diff =
         std::chrono::duration_cast<std::chrono::duration<float>>(now - t_user_task_start).count();
-    sal::Log::info("run_user_tasks time: {}", time_diff);
+    sal::Log::debug("run_user_tasks time: {}", time_diff);
 
 
     render_models();
@@ -111,19 +114,30 @@ void Application::render_models() noexcept
         glm::vec3 model_scale{transform.scale};
 
         shader.use();
+        /*
+                /// TODO: Cache these
+                /// TODO: Fix this '.dirty' issue
+                glm::mat4& model_mat{model.model_matrix};
 
-        /// TODO: Cache these
-        glm::mat4& model_mat{model.model_matrix};
+                if (transform.dirty) {
+                    model_mat = glm::translate(model_mat, model_position);
 
-        if (transform.dirty) {
-            model_mat = glm::translate(model_mat, model_position);
+                    model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
+                    model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
+                    model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
+                    model_mat = glm::scale(model_mat, model_scale);
+                    transform.dirty = false;
+                }
+                */
 
-            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
-            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
-            model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
-            model_mat = glm::scale(model_mat, model_scale);
-            transform.dirty = false;
-        }
+        glm::mat4 model_mat{1.f};
+
+        model_mat = glm::translate(model_mat, model_position);
+
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.x), {1.0f, 0.0f, 0.0f});
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
+        model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
+        model_mat = glm::scale(model_mat, model_scale);
 
         set_render_model_uniforms(shader);
 
@@ -166,7 +180,7 @@ void Application::render_models() noexcept
 
     float const time_diff =
         std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-    sal::Log::info("render_time_models: {}", time_diff);
+    sal::Log::debug("render_time_models: {}", time_diff);
 }
 
 void Application::render_instanced() noexcept
@@ -216,7 +230,7 @@ void Application::render_instanced() noexcept
 
         float const time_diff =
             std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-        sal::Log::info("render_time_instanced: {}", time_diff);
+        sal::Log::debug("render_time_instanced: {}", time_diff);
         return;
     }
 
@@ -307,7 +321,7 @@ void Application::render_instanced() noexcept
 
     float const time_diff =
         std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-    sal::Log::info("render_time_instanced: {}", time_diff);
+    sal::Log::debug("render_time_instanced: {}", time_diff);
 }
 
 void Application::render_text() noexcept
@@ -335,8 +349,11 @@ void Application::render_text() noexcept
         model_mat = glm::rotate(model_mat, glm::radians(model_rotation.y), {0.0f, 1.0f, 0.0f});
         model_mat = glm::rotate(model_mat, glm::radians(model_rotation.z), {0.0f, 0.0f, 1.0f});
 
-        model_mat = glm::translate(model_mat, -glm::vec3{(text.size().x * model_scale.x) / 2,
-                                                         (text.size().y * model_scale.y) / 2, 0});
+        if (text.centered()) {
+            model_mat =
+                glm::translate(model_mat, -glm::vec3{(text.size().x * model_scale.x) / 2,
+                                                     (text.size().y * model_scale.y) / 2, 0});
+        }
 
         model_mat = glm::scale(model_mat, model_scale);
 
@@ -372,7 +389,7 @@ void Application::render_text() noexcept
 
     float const time_diff =
         std::chrono::duration_cast<std::chrono::duration<float>>(now - sw_start).count();
-    sal::Log::info("render_time_text: {}", time_diff);
+    sal::Log::debug("render_time_text: {}", time_diff);
 }
 
 void Application::run_engine_tasks() noexcept

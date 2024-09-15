@@ -13,10 +13,6 @@
     "name" : "opengl",
     "version>=" : "2022-12-04#3"
   }, {
-    "name" : "spdlog",
-    "version>=" : "1.11.0",
-    "$comment" : "    # this is heuristically generated, and may not be correct\n\n    find_package(spdlog CONFIG REQUIRED)\n\n    target_link_libraries(main PRIVATE spdlog::spdlog spdlog::spdlog_header_only)\n"
-  }, {
     "name" : "fmt",
     "version>=" : "9.1.0#1"
   }, {
@@ -40,5 +36,11 @@
   }, {
     "name" : "effolkronium-random",
     "version>=" : "1.4.1"
+  }, {
+    "name" : "nlohmann-json",
+    "version>=" : "3.11.3"
+  }, {
+    "name" : "spdlog",
+    "version>=" : "1.11.0"
   } ]
 }
