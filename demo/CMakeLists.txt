@@ -1,3 +1,2 @@
-add_subdirectory(nbody)
-add_subdirectory(conquest)
+add_subdirectory(bbmania)
 add_subdirectory(common)
