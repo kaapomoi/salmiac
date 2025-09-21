@@ -39,33 +39,33 @@ sal::Application::Exit_code Bbmania::start() noexcept
 
 sal::Application::Exit_code Bbmania::run() noexcept
 {
-    auto v_str = sal::File_reader::read_file("../res/shaders/basic_lighting.vsh");
-    auto f_str = sal::File_reader::read_file("../res/shaders/bad_lighting_frag.glsl");
+    auto v_str = sal::File_reader::read_file("../../res/shaders/basic_lighting.vsh");
+    auto f_str = sal::File_reader::read_file("../../res/shaders/bad_lighting_frag.glsl");
 
     m_shaders.emplace(
         "invert",
         sal::Shader_loader::from_sources(
             v_str, f_str, {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}}, {"material"}));
 
-    auto basic_lighting_str = sal::File_reader::read_file("../res/shaders/basic_lighting.fsh");
+    auto basic_lighting_str = sal::File_reader::read_file("../../res/shaders/basic_lighting.fsh");
     m_shaders.emplace("basic",
                       sal::Shader_loader::from_sources(
                           v_str, basic_lighting_str,
                           {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}}, {"material"}));
 
-    auto blink_lighting_str = sal::File_reader::read_file("../res/shaders/blink_lighting.fsh");
+    auto blink_lighting_str = sal::File_reader::read_file("../../res/shaders/blink_lighting.fsh");
     m_shaders.emplace("blink", sal::Shader_loader::from_sources(
                                    v_str, blink_lighting_str,
                                    {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}},
                                    {"material", "frame"}));
 
-    auto f2_str = sal::File_reader::read_file("../res/shaders/liquid_frag.glsl");
+    auto f2_str = sal::File_reader::read_file("../../res/shaders/liquid_frag.glsl");
     m_shaders.emplace("liquid",
                       sal::Shader_loader::from_sources(
                           v_str, f2_str, {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}},
                           {"material", "frame"}));
 
-    auto instanced_vert = sal::File_reader::read_file("../res/shaders/instanced_vert.glsl");
+    auto instanced_vert = sal::File_reader::read_file("../../res/shaders/instanced_vert.glsl");
     m_shaders.emplace("instanced_basic",
                       sal::Shader_loader::from_sources(instanced_vert, basic_lighting_str,
                                                        {{"in_uv"},
@@ -91,56 +91,56 @@ sal::Application::Exit_code Bbmania::run() noexcept
 
     float const scale_factor{1.f};
     /*
-    std::string const model_file{"../res/models/bbm_v1/BomberMan_v1.obj"};
+    std::string const model_file{"../../res/models/bbm_v1/BomberMan_v1.obj"};
     m_models.emplace("bomberman_v1", sal::Model_loader::from_file(model_file, scale_factor,
                                                                   base_flags | aiProcess_FlipUVs));
 
-    std::string const bomb_model_file{"../res/models/bbm_bomb_v1/untitled.obj"};
+    std::string const bomb_model_file{"../../res/models/bbm_bomb_v1/untitled.obj"};
     m_models.emplace("bomb_v1", sal::Model_loader::from_file(model_file, scale_factor,
                                                              base_flags | aiProcess_FlipUVs));
     */
 
-    sal::Texture disaster_tex{sal::Texture_loader::from_file("../res/textures/disaster.png",
+    sal::Texture disaster_tex{sal::Texture_loader::from_file("../../res/textures/disaster.png",
                                                              sal::Texture::Type::diffuse)};
     sal::Mesh const disaster_cube{
         sal::Primitive_factory::cube(glm::vec3{scale_factor}, {disaster_tex})};
     m_models.emplace("disaster_cube", sal::Model{{disaster_cube}});
 
     sal::Texture wood_tex{
-        sal::Texture_loader::from_file("../res/textures/wood.png", sal::Texture::Type::diffuse)};
+        sal::Texture_loader::from_file("../../res/textures/wood.png", sal::Texture::Type::diffuse)};
     sal::Mesh const cube{sal::Primitive_factory::cube(glm::vec3{scale_factor}, {wood_tex})};
     m_models.emplace("wood_cube", sal::Model{{cube}});
 
     sal::Texture rock_tex{
-        sal::Texture_loader::from_file("../res/textures/rock.png", sal::Texture::Type::diffuse)};
+        sal::Texture_loader::from_file("../../res/textures/rock.png", sal::Texture::Type::diffuse)};
     sal::Mesh const rock_cube{sal::Primitive_factory::cube(glm::vec3{scale_factor}, {rock_tex})};
     m_models.emplace("rock_cube", sal::Model{{rock_cube}});
 
     sal::Texture gravel_tex{
-        sal::Texture_loader::from_file("../res/textures/gravel.png", sal::Texture::Type::diffuse)};
+        sal::Texture_loader::from_file("../../res/textures/gravel.png", sal::Texture::Type::diffuse)};
     sal::Mesh const gravel_cube{
         sal::Primitive_factory::cube(glm::vec3{scale_factor}, {gravel_tex})};
     m_models.emplace("gravel_cube", sal::Model{{gravel_cube}});
 
     sal::Texture explosion_tex{
-        sal::Texture_loader::from_file("../res/textures/bg.png", sal::Texture::Type::diffuse)};
+        sal::Texture_loader::from_file("../../res/textures/bg.png", sal::Texture::Type::diffuse)};
     sal::Mesh const explosion_cube{
         sal::Primitive_factory::cube(glm::vec3{scale_factor}, {explosion_tex})};
     m_models.emplace("explosion_cube", sal::Model{{explosion_cube}});
 
 
     sal::Texture bg_tex{
-        sal::Texture_loader::from_file("../res/textures/bg.png", sal::Texture::Type::diffuse)};
+        sal::Texture_loader::from_file("../../res/textures/bg.png", sal::Texture::Type::diffuse)};
     sal::Mesh bg_plane{sal::Primitive_factory::plane(glm::vec3{scale_factor}, {bg_tex})};
     m_models.emplace("bg_plane", sal::Model{{bg_plane}});
 
-    auto text_vert = sal::File_reader::read_file("../res/shaders/basic_text_vert.glsl");
-    auto text_frag = sal::File_reader::read_file("../res/shaders/basic_text_frag.glsl");
+    auto text_vert = sal::File_reader::read_file("../../res/shaders/basic_text_vert.glsl");
+    auto text_frag = sal::File_reader::read_file("../../res/shaders/basic_text_frag.glsl");
     m_shaders.emplace("basic_text", sal::Shader_loader::from_sources(
                                         text_vert, text_frag,
                                         {{"in_uv"}, {"in_normal"}, {"in_pos"}, {"in_color"}},
                                         {"atlas", "color"}));
-    m_fonts.emplace_back(m_font_loader.create("../res/fonts/calibri.ttf"));
+    m_fonts.emplace_back(m_font_loader.create("../../res/fonts/calibri.ttf"));
 
 
     /// These are just defaults. The map can be a different size

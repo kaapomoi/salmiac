@@ -82,7 +82,7 @@ private:
 
     std::string m_unique_client_id{"xxxxxxxx"};
 
-    sal::Client_socket m_client_socket{sal::File_reader::read_file("../res/config/ip")};
+    sal::Client_socket m_client_socket{sal::File_reader::read_file("../../res/config/ip")};
 };
 
 } // namespace bbm

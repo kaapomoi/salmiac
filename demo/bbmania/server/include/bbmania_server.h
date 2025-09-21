@@ -52,7 +52,7 @@ private:
 
     Game_state m_game_state;
 
-    sal::Server_socket m_server_socket{sal::File_reader::read_file("../res/config/bind_ip")};
+    sal::Server_socket m_server_socket{sal::File_reader::read_file("../../res/config/bind_ip")};
 
     std::atomic_bool m_should_continue{true};
     std::atomic_bool m_game_started{false};
@@ -85,11 +85,11 @@ private:
 
     std::size_t m_game_counter{0};
     std::vector<std::string> m_board_files{
-        "../res/boards/first.bbm",  "../res/boards/castle.bbm", "../res/boards/thing.bbm",
-        "../res/boards/spider.bbm", "../res/boards/kela.bbm",
+        "../../res/boards/first.bbm",  "../../res/boards/castle.bbm", "../../res/boards/thing.bbm",
+        "../../res/boards/spider.bbm", "../../res/boards/kela.bbm",
     };
 
-    std::string m_current_board_file{"../res/boards/onebox.bbm"};
+    std::string m_current_board_file{"../../res/boards/onebox.bbm"};
 
     std::map<Network_protocol::Direction, glm::vec2> m_movement_chart{
         {Network_protocol::Direction::UP, glm::vec2{0.f, m_player_movement_speed}},

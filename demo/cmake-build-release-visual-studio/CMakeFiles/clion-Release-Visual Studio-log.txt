@@ -1,0 +1,67 @@
+"C:\Users\kaapo\AppData\Local\Programs\CLion Nova\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Release "-DCMAKE_MAKE_PROGRAM=C:/Users/kaapo/AppData/Local/Programs/CLion Nova/bin/ninja/win/x64/ninja.exe" -DCMAKE_TOOLCHAIN_FILE=C:\Users\kaapo\.clion-vcpkg\vcpkg\scripts\buildsystems\vcpkg.cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 -G Ninja -S C:\Users\kaapo\dev\salmiac\demo -B C:\Users\kaapo\dev\salmiac\demo\cmake-build-release-visual-studio
+CMake Warning (dev) in CMakeLists.txt:
+  No project() command is present.  The top-level CMakeLists.txt file must
+  contain a literal, direct call to the project() command.  Add a line of
+  code such as
+
+    project(ProjectName)
+
+  near the top of the file, but after cmake_minimum_required().
+
+  CMake is pretending there is a "project(Project)" command on the first
+  line.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+CMake Warning (dev) in CMakeLists.txt:
+  cmake_minimum_required() should be called prior to this top-level project()
+  call.  Please see the cmake-commands(7) manual for usage documentation of
+  both commands.
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- The C compiler identification is MSVC 19.41.34120.0
+-- The CXX compiler identification is MSVC 19.41.34120.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - failed
+-- Check for working C compiler: C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.41.34120/bin/Hostx64/x64/cl.exe
+-- Check for working C compiler: C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.41.34120/bin/Hostx64/x64/cl.exe - broken
+CMake Error at C:/Users/kaapo/AppData/Local/Programs/CLion Nova/bin/cmake/win/x64/share/cmake-3.29/Modules/CMakeTestCCompiler.cmake:67 (message):
+  The C compiler
+
+    "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.41.34120/bin/Hostx64/x64/cl.exe"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: 'C:/Users/kaapo/dev/salmiac/demo/cmake-build-release-visual-studio/CMakeFiles/CMakeScratch/TryCompile-sf4rk4'
+    
+    Run Build Command(s): "C:/Users/kaapo/AppData/Local/Programs/CLion Nova/bin/ninja/win/x64/ninja.exe" -v cmTC_00be7
+    [1/2] C:\PROGRA~1\MICROS~2\2022\COMMUN~1\VC\Tools\MSVC\1441~1.341\bin\Hostx64\x64\cl.exe  /nologo   /DWIN32 /D_WINDOWS /W3  /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /FoCMakeFiles\cmTC_00be7.dir\testCCompiler.c.obj /FdCMakeFiles\cmTC_00be7.dir\ /FS -c C:\Users\kaapo\dev\salmiac\demo\cmake-build-release-visual-studio\CMakeFiles\CMakeScratch\TryCompile-sf4rk4\testCCompiler.c
+    [2/2] C:\Windows\system32\cmd.exe /C "cd . && "C:\Users\kaapo\AppData\Local\Programs\CLion Nova\bin\cmake\win\x64\bin\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\cmTC_00be7.dir --rc=C:\PROGRA~2\WI3CF2~1\10\bin\100226~1.0\x64\rc.exe --mt=C:\PROGRA~2\WI3CF2~1\10\bin\100226~1.0\x64\mt.exe --manifests  -- C:\PROGRA~1\MICROS~2\2022\COMMUN~1\VC\Tools\MSVC\1441~1.341\bin\Hostx64\x64\link.exe /nologo CMakeFiles\cmTC_00be7.dir\testCCompiler.c.obj  /out:cmTC_00be7.exe /implib:cmTC_00be7.lib /pdb:cmTC_00be7.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+    FAILED: cmTC_00be7.exe 
+    C:\Windows\system32\cmd.exe /C "cd . && "C:\Users\kaapo\AppData\Local\Programs\CLion Nova\bin\cmake\win\x64\bin\cmake.exe" -E vs_link_exe --intdir=CMakeFiles\cmTC_00be7.dir --rc=C:\PROGRA~2\WI3CF2~1\10\bin\100226~1.0\x64\rc.exe --mt=C:\PROGRA~2\WI3CF2~1\10\bin\100226~1.0\x64\mt.exe --manifests  -- C:\PROGRA~1\MICROS~2\2022\COMMUN~1\VC\Tools\MSVC\1441~1.341\bin\Hostx64\x64\link.exe /nologo CMakeFiles\cmTC_00be7.dir\testCCompiler.c.obj  /out:cmTC_00be7.exe /implib:cmTC_00be7.lib /pdb:cmTC_00be7.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+    LINK Pass 1: command "C:\PROGRA~1\MICROS~2\2022\COMMUN~1\VC\Tools\MSVC\1441~1.341\bin\Hostx64\x64\link.exe /nologo CMakeFiles\cmTC_00be7.dir\testCCompiler.c.obj /out:cmTC_00be7.exe /implib:cmTC_00be7.lib /pdb:cmTC_00be7.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\cmTC_00be7.dir/intermediate.manifest CMakeFiles\cmTC_00be7.dir/manifest.res" failed (exit code 1120) with the following output:
+    MSVCRTD.lib(utility_app.obj) : error LNK2019: unresolved external symbol __imp_RoInitialize referenced in function __scrt_initialize_winrt
+    cmTC_00be7.exe : fatal error LNK1120: 1 unresolved externals
+    ninja: build stopped: subcommand failed.
+    
+    
+
+  
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt
+
+
+CMake Warning (dev) in CMakeLists.txt:
+  No cmake_minimum_required command is present.  A line of code such as
+
+    cmake_minimum_required(VERSION 3.29)
+
+  should be added at the top of the file.  The version specified may be lower
+  if you wish to support older CMake versions for this project.  For more
+  information run "cmake --help-policy CMP0000".
+This warning is for project developers.  Use -Wno-dev to suppress it.
+
+-- Configuring incomplete, errors occurred!
